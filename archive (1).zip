@@ -16,8 +16,7 @@ library(tsibble)
 
 
 ### Carregando banco de dados em formato csv
-diretorio <- "C:\\Users\\usuario\\Documents\\lista_1\\dados\\DailyDelhiClimateTrain.csv"
-df_cli <- read_csv(diretorio)
+df_cli <- read_csv(unz(caminho_zip, "DailyDelhiClimateTrain.csv"))
 head(df_cli)
 
 #================================================================
