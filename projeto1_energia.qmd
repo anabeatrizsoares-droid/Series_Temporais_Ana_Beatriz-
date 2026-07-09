@@ -1,0 +1,215 @@
+---
+title: "Projeto 1 - Consumo de Energia Elétrica no Brasil"
+author: "Ana Beatriz de Souza Soares."
+format: html
+editor: visual
+---
+
+
+
+# INTRODUÇÃO
+
+O consumo de energia elétrica no setor comercial é um importante indicador do desenvolvimento econômico e social de um país. No Brasil, a energia elétrica é obtida por meio de uma matriz diversificada, sendo essencial o seu planejamento para garantir o abastecimento e a eficiência energética. 
+
+Diante do crescimento da demanda, torna-se necessário utilizar ferramentas estatísticas que permitam projetar cenários futuros. As séries temporais se destacam nesse contexto por modelarem o comportamento de uma variável ao longo do tempo e gerarem previsões. 
+
+Este trabalho tem como objetivo analisar a série histórica do consumo final de energia elétrica no setor comercial no Brasil, no período de 1961 a 2025, com dados do Ministério de Minas e Energia - MME, e realizar previsões para os anos de 2026 a 2031 utilizando modelos de Suavização Exponencial.
+
+Os dados foram coletados no  Ministério de Minas e Energia, Balanço Energético Nacional (MME). 
+
+# METODOLOGIA 
+
+Os dados foram obtidos no Balanço Energético Nacional do Ministério de Minas e Energia - MME, referentes ao consumo final de energia elétrica no setor comercial, com frequência anual de 1961 a 2025, em MWh. 
+
+A análise foi realizada no software R versão 4.4.0. Para tratamento dos dados foram utilizados os pacotes `dplyr` e `tidyr`. A estruturação da série temporal foi feita com o pacote `tsibble`. As análises exploratórias de ACF, PACF e Decomposição foram realizadas com o pacote `feasts`. A modelagem e previsão foram feitas com o pacote `fable` e a visualização gráfica com `ggplot2`. A leitura do arquivo Excel foi feita com `readxl`. R CORE TEAM, 2024.
+
+## Modelos de Suavização Exponencial 
+
+Para a previsão foram utilizados os modelos da família ETS - _Error, Trend, Seasonality_, que são modelos de Suavização Exponencial. Esses modelos são amplamente utilizados para séries temporais por atribuírem pesos exponencialmente decrescentes às observações passadas.
+
+
+
+```{r, warning=FALSE, message=FALSE}
+library(readxl)   
+library(dplyr)
+library(tidyr)
+library(tsibble)
+library(fable)
+library(feasts)
+library(ggplot2)
+```
+
+```{r, warning=FALSE}
+# Carregar os dados
+df <- read_excel("dados/tmpA925.xls") 
+```
+
+```{r, warning=FALSE}
+## Deixar no formato longo: Sigla | Ano | consumo_energia
+df_long <- df %>%
+  select(-c(Codigo, Estado)) %>%  # remove colunas que não são anos
+  pivot_longer(
+    cols = -Sigla, 
+    names_to = "Ano", 
+    values_to = "consumo_energia"
+  ) %>%
+  mutate(Ano = as.integer(Ano)) %>% 
+  filter(!is.na(consumo_energia))
+df_long
+```
+
+```{r, warning=FALSE}
+## Criar série temporal do Brasil - somando todas UFs
+serie <- df_long %>%
+  group_by(Ano) %>%
+  summarise(consumo_energia = sum(consumo_energia, na.rm = TRUE)) %>%
+  as_tsibble(index = Ano) %>%
+  tsibble::fill_gaps()
+
+## imputacao de missing
+serie <- serie |>
+  model(ARIMA(consumo_energia)) |>
+  interpolate(serie)
+
+```
+
+```{r, warning=FALSE}
+head(serie)
+tail(serie)
+```
+
+```{r, warning=FALSE}
+## Plot da série
+serie %>%
+  ggplot(aes(x = Ano, y = consumo_energia)) +
+  geom_line(size = 1) +
+  labs(title = "Consumo de Energia Elétrica - Comércio Brasil 1961-2025",
+       y = "MWh", x = "Ano") +
+  theme_minimal()
+```
+
+
+```{r, warning=FALSE}
+## ACF e PACF
+serie %>%
+  ACF(consumo_energia, lag_max = 20) %>% 
+  autoplot() + labs(title="ACF - Consumo Energia Comércio")
+
+serie %>%
+  PACF(consumo_energia, lag_max = 20) %>% 
+  autoplot() + labs(title="PACF - Consumo Energia Comércio")
+```
+
+```{r, warning=FALSE}
+## Decomposição - dados anuais não tem sazonalidade, só tendência
+#serie %>%
+#  model(
+#    classica_aditiva = classical_decomposition(consumo_energia, type = "additive")
+#  ) %>%
+#  components() %>%
+#  autoplot() +
+#  labs(title = "Decomposição Clássica Aditiva - Consumo Energia")
+```
+
+```{r, warning=FALSE}
+## Treino e Teste. Usar até 2015 para treinar e 2016-2025 para testar
+train <- serie %>% filter_index(1961 ~ 2022)
+test  <- serie %>% filter_index(2023 ~ 2025)
+```
+
+```{r, warning=FALSE}
+## Estimar modelos ETS
+fit <- train %>%
+  model(
+    SES = ETS(consumo_energia ~ error("A") + trend("N") + season("N")),
+    Holt = ETS(consumo_energia ~ error("A") + trend("A") + season("N")),
+    Damped = ETS(consumo_energia ~ error("A") + trend("Ad") + season("N"))
+  )
+```
+
+```{r, warning=FALSE}
+##  Previsão h = 3 anos: 2023 a 2025
+fc <- fit %>% forecast(h = 3)
+```
+
+
+```{r, warning=FALSE}
+## Gráfico das previsões
+fc %>%
+  autoplot(train, level = 95) +
+  autolayer(test, colour = "black") +
+  labs(y = "MWh", 
+       title = "Previsão de Consumo de Energia - Comércio Brasil 2026-2027") +
+  guides(colour = guide_legend(title = "Modelo"))
+```
+
+```{r, warning=FALSE}
+## Medidas de acurácia
+accuracy(fc, test)
+```
+
+```{r, warning=FALSE}
+## Melhor modelo e previsão final para o futuro
+### Escolha o menor RMSE/MAPE do passo anterior. Ex: Holt
+mod_best <- serie %>%
+  model(Holt = ETS(consumo_energia ~ error("A") + trend("A") + season("N")))
+
+forecast_final <- mod_best %>% forecast(h = 2)
+forecast_final %>% autoplot(serie) +
+  labs(title = "Previsão Final 2026-2027", y = "MWh")
+```
+
+
+```{r}
+## Melhor modelo e previsão final para o futuro
+### Escolha o menor RMSE/MAPE do passo anterior. Ex: Holt
+mod_best <- serie %>%
+  model(Holt = ETS(consumo_energia ~ error("A") + trend("A") + season("N")))
+
+forecast_final <- mod_best %>% forecast(h = 6)
+forecast_final %>% autoplot(serie) +
+  labs(title = "Previsão Final 2026-2031", y = "MWh")
+
+
+```
+
+
+
+## Foram testados 3 modelos:
+
+1.  *SES - Suavização Exponencial Simples*: `ETS(A,N)`. Utilizado quando a série não possui tendência nem sazonalidade. O erro é aditivo, sem tendência e sem sazonalidade.
+
+2.  *Holt - Suavização Exponencial com Tendência*: `ETS(A,A,N)`. Utilizado quando a série possui tendência linear. O erro é aditivo, com tendência aditiva e sem sazonalidade.
+
+3.  *Holt Amortecido - Damped Trend*: `ETS(A,Ad,N)`. Similar ao Holt, porém a tendência é amortecida ao longo do tempo, evitando projeções excessivamente crescentes ou decrescentes no longo prazo.
+
+
+A série foi dividida em conjunto de treino de 1961 a 2015 e conjunto de teste de 2016 a 2025 para validação dos modelos. A escolha do melhor modelo foi feita com base nas medidas de acurácia: RMSE e MAPE. Após a escolha, o modelo foi reajustado com toda a série de 1961 a 2025 para gerar a previsão final.
+
+# APLICAÇÃO
+
+Inicialmente os dados foram organizados do formato largo para o formato longo e agregados por ano, somando o consumo de todas as Unidades da Federação para obter o total Brasil. 
+
+
+Em seguida foi realizada a análise exploratória da série através do gráfico da série temporal, da função de autocorrelação - ACF, da função de autocorrelação parcial - PACF e da Decomposição Clássica Aditiva para verificação de tendência.
+
+
+Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027), h = 6 anos (2026-2031) e h = 10 anos(2026-2035). 
+
+Foi selecionado o melhor modelo com base nas medidas de acurácia e gerada a previsão final com toda a base de dados.
+
+# Referência 
+
+ Material de aula: [Séries Temporais a. 
+Campina Grande: UEPB, 2026. 1 arquivo. Material apresentado em sala de aula.
+
+BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e 
+Tecnologia da Paraíba. Campus Esperança. Boletim escolar individual. 
+
+Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. 
+Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. 
+Período: 2024/1. Esperança, 2024.
+
+BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional. 
+Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.
+
