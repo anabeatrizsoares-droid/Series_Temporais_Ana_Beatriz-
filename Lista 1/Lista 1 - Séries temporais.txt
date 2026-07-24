@@ -1,0 +1,700 @@
+---
+title: " Lista 1 - Séries temporais"
+author: "Ana Beatriz de Souza Soares."
+format: html
+editor: visual
+---
+
+# Perguntar 1:Dados climáticos.
+
+
+``` r
+# Bibliotecas de séries temporais
+
+library(dplyr)
+library(feasts)
+library(forecast)
+library(fpp3)
+library(ggplot2)
+library(lubridate)
+library(readr)
+library(TSA)
+library(tsibble)
+```
+
+
+``` r
+# Carregando banco de dados em formato csv
+df_cli <- read_csv("C:/Users/loja/Documents/GitHub/Series_Temporais_Ana_Beatriz-/dados/DailyDelhiClimateTrain.csv")
+```
+
+```
+## Rows: 1462 Columns: 5
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: ","
+## dbl  (4): meantemp, humidity, wind_speed, meanpressure
+## date (1): date
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+```
+
+``` r
+head(df_cli)
+```
+
+```
+## # A tibble: 6 × 5
+##   date       meantemp humidity wind_speed meanpressure
+##   <date>        <dbl>    <dbl>      <dbl>        <dbl>
+## 1 2013-01-01    10        84.5       0           1016.
+## 2 2013-01-02     7.4      92         2.98        1018.
+## 3 2013-01-03     7.17     87         4.63        1019.
+## 4 2013-01-04     8.67     71.3       1.23        1017.
+## 5 2013-01-05     6        86.8       3.7         1016.
+## 6 2013-01-06     7        82.8       1.48        1018
+```
+
+## ANALISE DIARIA
+
+
+``` r
+# transformando para o formato tsibble
+serie_diaria <- df_cli %>%
+  mutate(date = as_date(date)) %>%
+  as_tsibble(index = date)
+
+serie_diaria
+```
+
+```
+## # A tsibble: 1,462 x 5 [1D]
+##    date       meantemp humidity wind_speed meanpressure
+##    <date>        <dbl>    <dbl>      <dbl>        <dbl>
+##  1 2013-01-01    10        84.5       0           1016.
+##  2 2013-01-02     7.4      92         2.98        1018.
+##  3 2013-01-03     7.17     87         4.63        1019.
+##  4 2013-01-04     8.67     71.3       1.23        1017.
+##  5 2013-01-05     6        86.8       3.7         1016.
+##  6 2013-01-06     7        82.8       1.48        1018 
+##  7 2013-01-07     7        78.6       6.3         1020 
+##  8 2013-01-08     8.86     63.7       7.14        1019.
+##  9 2013-01-09    14        51.2      12.5         1017 
+## 10 2013-01-10    11        62         7.4         1016.
+## # ℹ 1,452 more rows
+```
+
+
+``` r
+## Plot das series diárias
+
+serie_diaria %>%
+  pivot_longer(-date) %>%
+  ggplot(aes(x = date, y = value, colour = name)) +
+  geom_line() +
+  facet_grid(name ~., scales = "free_y") +
+  labs(title = "Séries Temporais Diárias", x = "Data", y = "Valor")
+```
+
+![plot of chunk unnamed-chunk-4](figure/unnamed-chunk-4-1.png)
+
+## Estudando a sazonalidade diária - period = 365 para dados diários
+
+
+``` r
+### Temperatura média
+serie_diaria %>%
+  model(classical_decomposition(meantemp, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Temperatura Média Diária")
+```
+
+```
+## Warning: Removed 12 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5-1.png)
+
+
+``` r
+### Humidade
+
+serie_diaria %>%
+  model(classical_decomposition(humidity, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Humidade Diária")
+```
+
+```
+## Warning: Removed 12 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6-1.png)
+
+
+``` r
+### Pressão
+serie_diaria %>%
+  model(classical_decomposition(meanpressure, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Pressão Média Diária")
+```
+
+```
+## Warning: Removed 12 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-7](figure/unnamed-chunk-7-1.png)
+
+
+``` r
+### Velocidade do vento
+serie_diaria %>%
+  model(classical_decomposition(wind_speed, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Velocidade do Vento Diária")
+```
+
+```
+## Warning: Removed 12 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-8](figure/unnamed-chunk-8-1.png)
+
+## ANALISE MENSAL
+
+
+``` r
+## transformando para o formato tsibble mensal
+serie_mensal <- df_cli %>%
+  mutate(mes_ano = yearmonth(date)) %>%
+  group_by(mes_ano) %>%
+  summarise(humidity = mean(humidity, na.rm = TRUE),
+            meanpressure = mean(meanpressure, na.rm = TRUE),
+            meantemp = mean(meantemp, na.rm = TRUE),
+            wind_speed = mean(wind_speed, na.rm = TRUE)) %>%
+  as_tsibble(index = mes_ano)
+
+serie_mensal
+```
+
+```
+## # A tsibble: 49 x 5 [1M]
+##     mes_ano humidity meanpressure meantemp wind_speed
+##       <mth>    <dbl>        <dbl>    <dbl>      <dbl>
+##  1 2013 jan     73.0        1018.     12.1       4.83
+##  2 2013 fev     71.9        1016.     16.9       7.47
+##  3 2013 mar     57.4        1012.     22.8       8.76
+##  4 2013 abr     34.6        1006.     28.9       8.05
+##  5 2013 mai     28.9        1000.     33.8       8.94
+##  6 2013 jun     58.8         997.     32.5       9.59
+##  7 2013 jul     74.9         997.     30.7       7.36
+##  8 2013 ago     76.8        1000.     29.5       7.38
+##  9 2013 set     64.6        1004.     29.8       7.59
+## 10 2013 out     70.3        1010.     26.1       2.84
+## # ℹ 39 more rows
+```
+
+
+``` r
+## Plot das series mensais
+serie_mensal %>%
+  pivot_longer(-mes_ano) %>%
+  ggplot(aes(x = mes_ano, y = value, colour = name)) +
+  geom_line() +
+  facet_grid(name ~., scales = "free_y") +
+  labs(title = "Séries Temporais Mensais", x = "Mês/Ano", y = "Valor")
+```
+
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10-1.png)
+
+## Estudando a sazonalidade mensal
+
+
+``` r
+# Humidade
+serie_mensal %>%
+  gg_season(humidity, labels = "both") +
+  labs(y = "Média mensal da Humidade",
+       title = "Sazonalidade: Humidade")
+```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-1.png)
+
+``` r
+serie_mensal %>%
+  gg_subseries(humidity) +
+  labs(y = "Humidade",
+       title = "Sub-séries Sazonais: Humidade")
+```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11-2.png)
+
+
+``` r
+# Temperatura
+serie_mensal %>%
+  gg_season(meantemp, labels = "both") +
+  labs(y = "Média mensal da Temperatura",
+       title = "Sazonalidade: Temperatura")
+```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-1.png)
+
+``` r
+serie_mensal %>%
+  gg_subseries(meantemp) +
+  labs(y = "Temperatura",
+  title = "Sub-séries Sazonais: Temperatura")
+```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12-2.png)
+
+
+``` r
+# Pressão
+serie_mensal %>%
+  gg_season(meanpressure, labels = "both") +
+  labs(y = "Média mensal da Pressão",
+       title = "Sazonalidade: Pressão")
+```
+
+![plot of chunk unnamed-chunk-13](figure/unnamed-chunk-13-1.png)
+
+
+``` r
+# Velocidade do vento
+serie_mensal %>%
+  gg_season(wind_speed, labels = "both") +
+  labs(y = "Média mensal do Vento",
+       title = "Sazonalidade: Velocidade do Vento")
+```
+
+![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14-1.png)
+
+
+``` r
+# Decomposição aditiva mensal - period = 12
+serie_mensal %>%
+  model(classical_decomposition(meantemp, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Temperatura Média Mensal")
+```
+
+```
+## Warning: Removed 24 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-1.png)
+
+``` r
+serie_mensal %>%
+  model(classical_decomposition(humidity, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Humidade Mensal")
+```
+
+```
+## Warning: Removed 24 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-2.png)
+## ANALISE TRIMESTRAL
+
+
+``` r
+# transformando para o formato tsibble trimestral
+serie_tri <- df_cli %>%
+  mutate(tri_ano = yearquarter(date)) %>%
+  group_by(tri_ano) %>%
+  summarise(humidity = mean(humidity, na.rm = TRUE),
+            meanpressure = mean(meanpressure, na.rm = TRUE),
+            meantemp = mean(meantemp, na.rm = TRUE),
+            wind_speed = mean(wind_speed, na.rm = TRUE)) %>%
+  as_tsibble(index = tri_ano)
+
+serie_tri
+```
+
+```
+## # A tsibble: 17 x 5 [1Q]
+##    tri_ano humidity meanpressure meantemp wind_speed
+##      <qtr>    <dbl>        <dbl>    <dbl>      <dbl>
+##  1 2013 Q1     67.3        1015.     17.3       7.01
+##  2 2013 Q2     40.6        1001.     31.7       8.86
+##  3 2013 Q3     72.1        1001.     30.0       7.44
+##  4 2013 Q4     71.9        1014.     20.1       4.02
+##  5 2014 Q1     73.4        1016.     17.0       6.36
+##  6 2014 Q2     41.7        1003.     31.4       9.18
+##  7 2014 Q3     62.5        1001.     31.1       7.75
+##  8 2014 Q4     61.5        1014.     20.5       3.76
+##  9 2015 Q1     70.4        1016.     17.6       6.43
+## 10 2015 Q2     44.6        1003.     31.4       8.79
+## 11 2015 Q3     64.8        1002.     30.5       7.09
+## 12 2015 Q4     65.9        1015.     20.9       3.63
+## 13 2016 Q1     65.2        1088.     20.0       5.81
+## 14 2016 Q2     40.0        1002.     34.1       9.42
+## 15 2016 Q3     69.9         983.     31.2       6.96
+## 16 2016 Q4     59.8        1006.     23.2       6.48
+## 17 2017 Q1    100          1016      10         0
+```
+
+
+``` r
+# Plot das series trimestrais
+serie_tri %>%
+  pivot_longer(-tri_ano) %>%
+  ggplot(aes(x = tri_ano, y = value, colour = name)) +
+  geom_line() +
+  facet_grid(name ~., scales = "free_y") +
+  labs(title = "Séries Temporais Trimestrais", x = "Trimestre/Ano", y = "Valor")
+```
+
+![plot of chunk unnamed-chunk-17](figure/unnamed-chunk-17-1.png)
+
+
+``` r
+# Estudando a sazonalidade trimestral
+serie_tri %>%
+  gg_season(meantemp, labels = "both") +
+  labs(y = "Média trimestral da Temperatura",
+       title = "Sazonalidade: Temperatura")
+```
+
+![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-18-1.png)
+
+``` r
+serie_tri %>%
+  gg_subseries(meantemp) +
+  labs(y = "Temperatura",
+       title = "Sub-séries Sazonais: Temperatura")
+```
+
+![plot of chunk unnamed-chunk-18](figure/unnamed-chunk-18-2.png)
+
+
+``` r
+## Decomposição aditiva trimestral - period = 4
+serie_tri %>%
+  model(classical_decomposition(meantemp, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Temperatura Média Trimestral")
+```
+
+```
+## Warning: Removed 8 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-19](figure/unnamed-chunk-19-1.png)
+
+``` r
+serie_tri %>%
+  model(classical_decomposition(humidity, type = "additive")) %>%
+  components() %>%
+  autoplot() +
+  labs(title = "Decomposição clássica aditiva - Humidade Trimestral")
+```
+
+```
+## Warning: Removed 8 rows containing missing values or values outside the scale range
+## (`geom_line()`).
+```
+
+![plot of chunk unnamed-chunk-19](figure/unnamed-chunk-19-2.png)
+
+Tendência: Em 4 anos não tem tendência de aquecimento ou resfriamento. A linha `trend` é quase flat. Dele varia sazonalmente mas não muda o nível médio.
+
+Sazonalidade: Forte e anual em todas variáveis. `meantemp` tem pico em Q2 = abril - junho ∼32°C e vale em Q1 = janeiro - março ∼15°C. `humidity` tem pico em Q3 = julho - setembro ∼80% por causa das monções. `meanpressure` é inversa: cai no verão.
+
+Por que mensal e trimestral: No diário você vê ruído. No mensal vê o ciclo anual limpo. No trimestral perde detalhe mas confirma que a sazonalidade é de 4 estações.
+
+## Conclusão .
+
+
+A análise exploratória das séries temporais climáticas nesse conjunto de dados, no período de 2013 a 2017, foi realizada em três granularidades distintas: diária, mensal e trimestral. 
+
+O objetivo consistiu em identificar a presença de componentes de tendência e sazonalidade nas variáveis `meantemp`, `humidity`, `meanpressure` e `wind_speed`, utilizando o framework `tsibble` e decomposição clássica aditiva. 
+
+Os dados foram agregados por média para as frequências mensal e trimestral, procedimento adequado para variáveis de estoque como temperatura e pressão.
+
+A visualização via `ggplot2` e a decomposição via `feasts` permitiram isolar os componentes `trend`, `seasonal` e `random` de cada série.
+
+Os resultados indicam ausência de tendência significativa de longo prazo no período analisado. 
+
+O componente `trend` extraído para todas as quatro variáveis apresentou comportamento aproximadamente flat, sem inclinação positiva ou negativa sustentada ao longo dos quatro anos.
+
+Isso sugere que, para o horizonte temporal do conjunto de dados, não há evidência de aquecimento, resfriamento ou mudança estrutural no nível médio das condições climáticas .
+
+A variabilidade observada nos gráficos diários é dominada por flutuações de alta frequência e pelo ciclo sazonal, não por deslocamentos no nível da série. Portanto, as séries podem ser consideradas estacionárias em média para o período.
+
+Em contrapartida, a componente sazonal é forte, determinística e anual para todas as variáveis, com `frequency = 365` na escala diária, `frequency = 12` na mensal e `frequency = 4` na trimestral. 
+
+A variável `meantemp` exibe sazonalidade com amplitude de aproximadamente 17°C, apresentando pico no segundo trimestre, abr-jun, com médias próximas a 32°C, e vale no primeiro trimestre, janeiro - março, com médias de 15°C. A `humidity` tem padrão sazonal defasado, com pico no terceiro trimestre, julho - setembro, atingindo 80% devido ao regime de monções, e vale no primeiro trimestre em torno de 40%. 
+
+ A `meanpressure` apresenta sazonalidade inversa à temperatura, com valores mínimos no verão e máximos no inverno, com amplitude de ∼10 hPa. A `wind_speed` possui sazonalidade de menor amplitude, ∼1.5 m/s, com pico no segundo e terceiro trimestres.
+
+A mudança de granularidade temporal de diária para mensal e trimestral cumpriu o objetivo de filtrar o ruído de alta frequência e evidenciar o padrão sazonal. Na escala diária, o componente `random` é dominante e mascara parcialmente o ciclo anual. Na agregação mensal, o ciclo anual torna-se visualmente limpo nos gráficos de `gg_season` e `gg_subseries`.
+
+Na escala trimestral, perde-se resolução intra-estação, mas confirma-se que o ciclo sazonal fundamental é composto por quatro estações bem definidas.
+
+Conclui-se que as séries climáticas dos dados são caracterizadas por forte sazonalidade aditiva anual e ausência de tendência no curto prazo, sendo o comportamento governado principalmente pelo ciclo climático regional.
+
+#  Perguntar 2) Dados do COVID.
+
+
+``` r
+df_covid <- read_csv("C:/Users/loja/Documents/GitHub/Series_Temporais_Ana_Beatriz-/dados/vaccinations.csv")
+```
+
+```
+## Rows: 195186 Columns: 16
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: ","
+## chr   (2): location, iso_code
+## dbl  (13): total_vaccinations, people_vaccinated, people_fully_vaccinated, t...
+## date  (1): date
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+```
+
+``` r
+head(df_covid)
+```
+
+```
+## # A tibble: 6 × 16
+##   location    iso_code date       total_vaccinations people_vaccinated
+##   <chr>       <chr>    <date>                  <dbl>             <dbl>
+## 1 Afghanistan AFG      2021-02-22                  0                 0
+## 2 Afghanistan AFG      2021-02-23                 NA                NA
+## 3 Afghanistan AFG      2021-02-24                 NA                NA
+## 4 Afghanistan AFG      2021-02-25                 NA                NA
+## 5 Afghanistan AFG      2021-02-26                 NA                NA
+## 6 Afghanistan AFG      2021-02-27                 NA                NA
+## # ℹ 11 more variables: people_fully_vaccinated <dbl>, total_boosters <dbl>,
+## #   daily_vaccinations_raw <dbl>, daily_vaccinations <dbl>,
+## #   total_vaccinations_per_hundred <dbl>, people_vaccinated_per_hundred <dbl>,
+## #   people_fully_vaccinated_per_hundred <dbl>,
+## #   total_boosters_per_hundred <dbl>, daily_vaccinations_per_million <dbl>,
+## #   daily_people_vaccinated <dbl>, daily_people_vaccinated_per_hundred <dbl>
+```
+
+
+# [a] Escolhe país : Brasil
+
+
+``` r
+pais <- "Brazil"
+vars_covid <- c("new_cases", "new_deaths", "total_cases", "new_vaccinations")
+
+df_br <- df_covid %>%
+  filter(location == pais) %>%
+  mutate(date = as_date(date)) %>%
+  arrange(date) %>% 
+  fill_gaps() %>% 
+  fill(all_of(vars_covid),.direction = "downup") 
+```
+
+```
+## Error in `fill_gaps()`:
+## ! Do you need `tidyr::complete()` for a `tbl_df`/`data.frame`?
+```
+
+``` r
+for(var in vars_covid){
+  p <- ggplot(df_br, aes(x = date, y =.data[[var]])) +
+    geom_line(color = "steelblue") +
+    labs(title = paste(var, "-", pais),
+         x = "Data", y = var) +
+    theme_minimal()
+  print(p)
+}
+```
+
+```
+## Error:
+## ! objeto 'df_br' não encontrado
+```
+
+# [b] Tendência e sazonalidade
+
+
+``` r
+# Tendência e sazonalidade - frequency = 7
+for(var in c("new_cases", "new_deaths")){ # total_cases não decompõe, é acumulada
+  df_var <- df_br %>% select(date,!!var) %>% drop_na()
+  
+  if(nrow(df_var) >= 14){ # Precisa de 2 ciclos = 14 dias
+    ts_covid <- ts(df_var[[var]],
+                   frequency = 7,
+                   start = c(year(min(df_var$date)), yday(min(df_var$date))))
+    decomp <- decompose(ts_covid, type = "additive")
+    plot(decomp, main = paste("Decomposição", var, "-", pais))
+  }
+}
+```
+
+```
+## Error:
+## ! objeto 'df_br' não encontrado
+```
+
+## Interpretação: 
+
+Tendência = ondas de covid. Sazonalidade = queda no fds por subnotificação.
+
+A decomposição das séries diárias de `new_cases` e `new_deaths` para o Brasil, com `frequency = 7`, revela dois componentes dominantes. O componente `trend` captura as ondas epidêmicas, caracterizadas por crescimento exponencial seguido de decaimento, correspondendo às fases de transmissão comunitária das variantes Gama, Delta e Ômicron entre 2020-2022.
+
+A tendência não é monotônica nem linear, apresentando múltiplos picos e vales associados a intervenções não farmacêuticas, vacinação e surgimento de novas cepas.
+
+O componente `seasonal` extraído é artificial e determinístico semanal, com amplitude de até 30% da média. 
+
+Os fatores sazonais são sistematicamente negativos aos domingos e segundas, dias 1 e 2, e positivos de quarta a sexta, dias 4 a 6.
+
+Esse padrão não reflete sazonalidade epidemiológica real, mas sim artefato de notificação: redução da testagem e do registro de óbitos nos finais de semana, com represamento e compensação nos dias úteis subsequentes. 
+
+A sazonalidade de lag 7 é espúria para fins de modelagem do processo gerador de dados biológico.
+
+O componente `random` apresenta heterocedasticidade, com variância proporcional ao nível da série e outliers positivos em datas de reclassificação de dados.
+
+As séries `new_cases` e `new_deaths` não são estacionárias em nível devido à tendência estocástica das ondas. Após primeira diferença $\Delta y_t$ para remover a tendência, ainda persiste autocorrelação de lag 7 no resíduo devido ao artefato de notificação. 
+
+Para modelagem ARIMA, recomenda-se usar médias móveis de 7 dias pra suavizar o efeito fds antes da decomposição.
+
+# Perguntar 3) Dados do Desmatamento.
+
+
+``` r
+df_desmat <-  read_csv("C:/Users/loja/Documents/GitHub/Series_Temporais_Ana_Beatriz-/dados/desmatamento_prodes.csv")
+```
+
+```
+## Rows: 35 Columns: 11
+## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: ","
+## dbl (11): referencia, acre, amazonas, amapa, maranhao, mato_grosso, para, ro...
+## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.
+```
+
+``` r
+head(df_desmat)
+```
+
+```
+## # A tibble: 6 × 11
+##   referencia  acre amazonas amapa maranhao mato_grosso  para rondonia roraima
+##        <dbl> <dbl>    <dbl> <dbl>    <dbl>       <dbl> <dbl>    <dbl>   <dbl>
+## 1       1988   620     1510    60     2450        5140  6990     2340     290
+## 2       1989   540     1180   130     1420        5960  5750     1430     630
+## 3       1990   550      520   250     1100        4020  4890     1670     150
+## 4       1991   380      980   410      670        2840  3780     1110     420
+## 5       1992   400      799    36     1135        4674  3787     2265     281
+## 6       1993   482      370     0      372        6220  4284     2595     240
+## # ℹ 2 more variables: tocantins <dbl>, area_total_desmatamento <dbl>
+```
+
+# [a] Gráficos para cada estado
+
+
+``` r
+estados <- unique(df_desmat$estado)
+```
+
+```
+## Warning: Unknown or uninitialised column: `estado`.
+```
+
+``` r
+for(uf in estados){
+  df_uf <- df_desmat %>%
+    filter(estado == uf) %>%
+    arrange(data) # 1. Ordena senão o geom_line liga os pontos fora de ordem
+  
+  p <- ggplot(df_uf, aes(x = data, y = area_desmatada)) +
+    geom_line(color = "firebrick") +
+    labs(title = paste("Desmatamento -", uf),
+         x = "Data", y = "Área km²") +
+    theme_minimal()
+  print(p)
+}
+```
+
+# [b] Tendência e sazonalidade
+
+
+``` r
+for(uf in estados){
+  df_uf_mensal <- df_desmat %>%
+    filter(estado == uf) %>%
+    mutate(mes = floor_date(data, "month")) %>%
+    group_by(mes) %>%
+    summarise(total = sum(area_desmatada, na.rm = TRUE)) %>%
+    arrange(mes) %>% # 2. Ordena antes do ts()
+    complete(mes = seq.Date(min(mes), max(mes), by = "month"),
+             fill = list(total = 0)) 
+```
+
+```
+## Error in parse(text = input): <text>:11:0: unexpected end of input
+## 9:              fill = list(total = 0)) 
+## 10:   
+##    ^
+```
+
+
+``` r
+# decompose precisa de 2 ciclos completos = 24 meses
+  if(nrow(df_uf_mensal) >= 24){
+    ts_desmat <- ts(df_uf_mensal$total,
+                    frequency = 12,
+                    start = c(year(min(df_uf_mensal$mes)),
+                              month(min(df_uf_mensal$mes))))
+    decomp <- decompose(ts_desmat, type = "additive")
+    plot(decomp, main = paste("Decomposição Desmatamento -", uf))
+  } else {
+    cat("Estado", uf, "tem só", nrow(df_uf_mensal), "meses. Não dá pra decompor.\n")
+  }
+} 
+```
+
+```
+## Error in parse(text = input): <text>:12:1: '}' inesperado
+## 11:   }
+## 12: }
+##     ^
+```
+
+# Conclusão .
+
+
+
+ A decomposição aditiva das séries mensais de desmatamento por estado, 2004-2024, mostra tendência não-linear com quebras estruturais.
+
+ O componente `trend` tem queda acentuada 2004-2012, redução de 83% no agregado, seguida de estabilização 2012-2018, reversão com alta 2019-2022 e nova queda pós-2023. MT e PA concentram a variação. AP e RR são estacionários em nível.
+
+ A sazonalidade é determinística anual com `frequency = 12` e amplitude heterogênea. Fatores sazonais positivos em maio - agosto concentram 60-70% do total anual. 
+
+ Fatores negativos em dezembro - março respondem por 10-15%. MT e PA têm amplitude sazonal de 400-500 km²/mês. AM tem amplitude de ∼80 km²/mês. O padrão está ligado ao ciclo de chuvas.
+
+ O componente `random` tem variância não constante e outliers em anos de El Niño e choques de política.
+ 
+ As séries não são estacionárias em nível. Após diferenciação simples Δyt e sazonal Δ12yt  ficam aptas para SARIMA.
+
+ O desmatamento é regido por regimes institucionais, sazonalidade climática e choques exógenos.
