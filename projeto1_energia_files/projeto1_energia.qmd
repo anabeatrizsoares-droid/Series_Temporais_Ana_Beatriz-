@@ -204,4 +204,4 @@ Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal 
 
 Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.3.
 
-Material de Aula (Notas de Aula/Slides)SOBRENOME, Nome do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula. (Nota: substitua pelo nome real do professor responsável pela disciplina). 
+Material de Aula (Notas de Aula/Slides)Monteiro de Almeida Júnior, Pedro do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula. 
