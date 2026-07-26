@@ -200,16 +200,8 @@ Foi selecionado o melhor modelo com base nas medidas de acurácia e gerada a pre
 
 # Referência 
 
- Material de aula: [Séries Temporais a. 
-Campina Grande: UEPB, 2026. 1 arquivo. Material apresentado em sala de aula.
+Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e Tecnologia da Paraíba (IFPB). Campus Esperança. Boletim escolar individual: Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. Período: 2024/1. Esperança: IFPB, 2024.2. 
 
-BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e 
-Tecnologia da Paraíba. Campus Esperança. Boletim escolar individual. 
+Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.3.
 
-Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. 
-Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. 
-Período: 2024/1. Esperança, 2024.
-
-BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional. 
-Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.
-
+Material de Aula (Notas de Aula/Slides)SOBRENOME, Nome do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula. (Nota: substitua pelo nome real do professor responsável pela disciplina). 
