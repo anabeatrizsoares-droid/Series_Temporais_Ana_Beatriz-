@@ -227,12 +227,18 @@ Inicialmente os dados foram organizados do formato largo para o formato longo e 
 
 Em seguida foi realizada a análise exploratória da série através do gráfico da série temporal, da função de autocorrelação - ACF, da função de autocorrelação parcial - PACF e da Decomposição Clássica Aditiva para verificação de tendência.
 
+<<<<<<< HEAD
 Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031)
+=======
+
+Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031) . 
+>>>>>>> faa6be42e8d7e18544f12ae761263cc440c323c4
 
 Foi selecionado o melhor modelo com base nas medidas de acurácia e gerada a previsão final com toda a base de dados.
 
 #  CONCLUSÃO
 
+<<<<<<< HEAD
 O presente trabalho analisou a série histórica do consumo final de energia elétrica no setor comercial no Brasil entre 1961 e 2025. Os resultados mostraram uma tendência de crescimento acentuada e contínua ao longo das décadas, passando de 2.510.142 MWh em 1961 para 102.288.645 MWh em 2025. Essa evolução reflete o desenvolvimento econômico, a urbanização e o aumento da demanda por serviços no país.
 
 Na etapa de modelagem, foram testados três modelos de Suavização Exponencial da família ETS: SES, Holt e Holt Amortecido. A validação com os dados de 2023 a 2025 indicou que o modelo de Holt `ETS(A,A,N)` apresentou o melhor desempenho, com RMSE de 5.084.686 e MAPE de 4.82%. O baixo MAPE demonstra boa capacidade de ajuste do modelo à série, que possui tendência linear e não apresenta sazonalidade por ser anual.
@@ -248,3 +254,10 @@ Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal 
 Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: <https://www.epe.gov.br.> Acesso em: 21 abr. 2026.
 
 Material de Aula (Notas de Aula/Slides)Monteiro de Almeida Júnior,Pedro do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula.
+=======
+Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e Tecnologia da Paraíba (IFPB). Campus Esperança. Boletim escolar individual: Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. Período: 2024/1. Esperança: IFPB, 2024.2. 
+
+Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.3.
+
+Material de Aula (Notas de Aula/Slides)Monteiro de Almeida Júnior, Pedro do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula. 
+>>>>>>> faa6be42e8d7e18544f12ae761263cc440c323c4
