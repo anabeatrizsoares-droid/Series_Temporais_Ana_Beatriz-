@@ -230,7 +230,7 @@ Em seguida foi realizada a análise exploratória da série através do gráfico
 Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031)
 
 Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031) . 
->>>>>>> faa6be42e8d7e18544f12ae761263cc440c323c4
+
 
 Foi selecionado o melhor modelo com base nas medidas de acurácia e gerada a previsão final com toda a base de dados.
 
