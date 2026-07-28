@@ -315,7 +315,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Limpeza dos dados do Excel (Removendo colunas de texto antes de pivotar)</span></span>
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>dados_limpos <span class="ot">&lt;-</span> tmpA925 <span class="sc">%&gt;%</span></span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(Codigo, Estado)) <span class="sc">%&gt;%</span> <span class="co"># REMOVE AS COLUNAS DE TEXTO PARA NÃO QUEBRAR O PIVOT</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(Codigo, Estado)) <span class="sc">%&gt;%</span></span>
 <span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  tidyr<span class="sc">::</span><span class="fu">pivot_longer</span>(</span>
 <span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">cols =</span> <span class="sc">-</span>Sigla, </span>
 <span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">names_to =</span> <span class="st">"ano"</span>, </span>
@@ -323,12 +323,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span> </span>
 <span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
 <span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">ano =</span> <span class="fu">as.integer</span>(ano),</span>
-<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">consumo_energia =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, <span class="fu">as.character</span>(consumo_energia)), <span class="co"># Tira milhar</span></span>
-<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">consumo_energia =</span> <span class="fu">gsub</span>(<span class="st">","</span>, <span class="st">"."</span>, consumo_energia),               <span class="co"># Troca decimal</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">consumo_energia =</span> <span class="fu">gsub</span>(<span class="st">"</span><span class="sc">\\</span><span class="st">."</span>, <span class="st">""</span>, <span class="fu">as.character</span>(consumo_energia)), </span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">consumo_energia =</span> <span class="fu">gsub</span>(<span class="st">","</span>, <span class="st">"."</span>, consumo_energia),            </span>
 <span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">consumo_energia =</span> <span class="fu">as.numeric</span>(consumo_energia)</span>
 <span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
 <span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(ano) <span class="sc">%&gt;%</span></span>
-<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">consumo_energia =</span> <span class="fu">sum</span>(consumo_energia, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span> <span class="co"># Soma Brasil</span></span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">consumo_energia =</span> <span class="fu">sum</span>(consumo_energia, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)) <span class="sc">%&gt;%</span> </span>
 <span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(ano), <span class="sc">!</span><span class="fu">is.na</span>(consumo_energia)) <span class="sc">%&gt;%</span></span>
 <span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(ano)</span>
 <span id="cb21-19"><a href="#cb21-19" aria-hidden="true" tabindex="-1"></a></span>
@@ -382,7 +382,7 @@ Forecasts:
 <span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>tabela_conclusao <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(</span>
 <span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">Ano =</span> <span class="dv">2026</span><span class="sc">:</span><span class="dv">2031</span>,</span>
 <span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">Previsao =</span> <span class="fu">round</span>(<span class="fu">as.numeric</span>(mod_best<span class="sc">$</span>mean), <span class="dv">0</span>),</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">LI_95 =</span> <span class="fu">round</span>(<span class="fu">as.numeric</span>(mod_best<span class="sc">$</span>lower[, <span class="dv">2</span>]), <span class="dv">0</span>), <span class="co"># [,2] pega a segunda coluna (95%)</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">LI_95 =</span> <span class="fu">round</span>(<span class="fu">as.numeric</span>(mod_best<span class="sc">$</span>lower[, <span class="dv">2</span>]), <span class="dv">0</span>),  </span>
 <span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">LS_95 =</span> <span class="fu">round</span>(<span class="fu">as.numeric</span>(mod_best<span class="sc">$</span>upper[, <span class="dv">2</span>]), <span class="dv">0</span>)</span>
 <span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a></span>
@@ -435,11 +435,8 @@ Adding another scale for x, which will replace the existing scale.</code></pre>
 <h1>APLICAÇÃO</h1>
 <p>Inicialmente os dados foram organizados do formato largo para o formato longo e agregados por ano, somando o consumo de todas as Unidades da Federação para obter o total Brasil.</p>
 <p>Em seguida foi realizada a análise exploratória da série através do gráfico da série temporal, da função de autocorrelação - ACF, da função de autocorrelação parcial - PACF e da Decomposição Clássica Aditiva para verificação de tendência.</p>
-
 <p>Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031)</p>
-
-<p>Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031).</p>
-
+<p>Posteriormente, os modelos SES, Holt e Holt Amortecido foram estimados com os dados de treino. Foram geradas previsões para 3 horizontes: h = 2 anos (2026-2027) e h = 6 anos (2026-2031) .</p>
 <p>Foi selecionado o melhor modelo com base nas medidas de acurácia e gerada a previsão final com toda a base de dados.</p>
 </section>
 <section id="conclusão" class="level1">
@@ -451,15 +448,12 @@ Adding another scale for x, which will replace the existing scale.</code></pre>
 </section>
 <section id="referência" class="level1">
 <h1>Referência</h1>
-
 <p>Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e Tecnologia da Paraíba (IFPB). Campus Esperança. Boletim escolar individual: Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. Período: 2024/1. Esperança: IFPB, 2024.</p>
 <p>Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: <a href="https://www.epe.gov.br." class="uri">https://www.epe.gov.br.</a> Acesso em: 21 abr. 2026.</p>
 <p>Material de Aula (Notas de Aula/Slides)Monteiro de Almeida Júnior,Pedro do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula.</p>
-
-<p Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e Tecnologia da Paraíba (IFPB). Campus Esperança. Boletim escolar individual: Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. Período: 2024/1. Esperança: IFPB, 2024.</p>
-<p>Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.</p>
-<p>Material de Aula (Notas de Aula/Slides)Monteiro de Almeida Júnior,Pedro do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula.</p>  
-
+<p>Documento Escolar (Boletim)BRASIL. Ministério da Educação. Instituto Federal de Educação, Ciência e Tecnologia da Paraíba (IFPB). Campus Esperança. Boletim escolar individual: Aluno: Ana Beatriz de Souza Soares. Matrícula: 202413170059. Curso: Formação Inicial e Continuada em Eletricista de Sistemas de Energias Renováveis. Período: 2024/1. Esperança: IFPB, 2024.2.</p>
+<p>Relatório Governamental (Disponível Online)BRASIL. Ministério de Minas e Energia. Balanço Energético Nacional 2025. Brasília: MME, 2025. Disponível em: https://www.epe.gov.br. Acesso em: 21 abr. 2026.3.</p>
+<p>Material de Aula (Notas de Aula/Slides)Monteiro de Almeida Júnior, Pedro do Professor. Séries Temporais. Campina Grande: UEPB, 2026. 1 arquivo eletrônico. Material apresentado em sala de aula. &gt;</p>
 </section>
 
 </main>
