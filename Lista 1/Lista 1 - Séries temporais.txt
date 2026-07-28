@@ -9,7 +9,7 @@ editor: visual
 
 
 ``` r
-# Bibliotecas de séries temporais
+#Bibliotecas de séries temporais
 
 library(dplyr)
 library(feasts)
@@ -20,11 +20,14 @@ library(lubridate)
 library(readr)
 library(TSA)
 library(tsibble)
+library(tidyr)
+library(zoo)
 ```
 
 
 ``` r
 # Carregando banco de dados em formato csv
+
 df_cli <- read_csv("C:/Users/loja/Documents/GitHub/Series_Temporais_Ana_Beatriz-/dados/DailyDelhiClimateTrain.csv")
 ```
 
@@ -311,6 +314,7 @@ serie_mensal %>%
 ```
 
 ![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15-2.png)
+
 ## ANALISE TRIMESTRAL
 
 
@@ -424,16 +428,15 @@ Por que mensal e trimestral: No diário você vê ruído. No mensal vê o ciclo 
 
 ## Conclusão .
 
+A análise exploratória das séries temporais climáticas nesse conjunto de dados, no período de 2013 a 2017, foi realizada em três granularidades distintas: diária, mensal e trimestral.
 
-A análise exploratória das séries temporais climáticas nesse conjunto de dados, no período de 2013 a 2017, foi realizada em três granularidades distintas: diária, mensal e trimestral. 
-
-O objetivo consistiu em identificar a presença de componentes de tendência e sazonalidade nas variáveis `meantemp`, `humidity`, `meanpressure` e `wind_speed`, utilizando o framework `tsibble` e decomposição clássica aditiva. 
+O objetivo consistiu em identificar a presença de componentes de tendência e sazonalidade nas variáveis `meantemp`, `humidity`, `meanpressure` e `wind_speed`, utilizando o framework `tsibble` e decomposição clássica aditiva.
 
 Os dados foram agregados por média para as frequências mensal e trimestral, procedimento adequado para variáveis de estoque como temperatura e pressão.
 
 A visualização via `ggplot2` e a decomposição via `feasts` permitiram isolar os componentes `trend`, `seasonal` e `random` de cada série.
 
-Os resultados indicam ausência de tendência significativa de longo prazo no período analisado. 
+Os resultados indicam ausência de tendência significativa de longo prazo no período analisado.
 
 O componente `trend` extraído para todas as quatro variáveis apresentou comportamento aproximadamente flat, sem inclinação positiva ou negativa sustentada ao longo dos quatro anos.
 
@@ -441,11 +444,11 @@ Isso sugere que, para o horizonte temporal do conjunto de dados, não há evidê
 
 A variabilidade observada nos gráficos diários é dominada por flutuações de alta frequência e pelo ciclo sazonal, não por deslocamentos no nível da série. Portanto, as séries podem ser consideradas estacionárias em média para o período.
 
-Em contrapartida, a componente sazonal é forte, determinística e anual para todas as variáveis, com `frequency = 365` na escala diária, `frequency = 12` na mensal e `frequency = 4` na trimestral. 
+Em contrapartida, a componente sazonal é forte, determinística e anual para todas as variáveis, com `frequency = 365` na escala diária, `frequency = 12` na mensal e `frequency = 4` na trimestral.
 
-A variável `meantemp` exibe sazonalidade com amplitude de aproximadamente 17°C, apresentando pico no segundo trimestre, abr-jun, com médias próximas a 32°C, e vale no primeiro trimestre, janeiro - março, com médias de 15°C. A `humidity` tem padrão sazonal defasado, com pico no terceiro trimestre, julho - setembro, atingindo 80% devido ao regime de monções, e vale no primeiro trimestre em torno de 40%. 
+A variável `meantemp` exibe sazonalidade com amplitude de aproximadamente 17°C, apresentando pico no segundo trimestre, abr-jun, com médias próximas a 32°C, e vale no primeiro trimestre, janeiro - março, com médias de 15°C. A `humidity` tem padrão sazonal defasado, com pico no terceiro trimestre, julho - setembro, atingindo 80% devido ao regime de monções, e vale no primeiro trimestre em torno de 40%.
 
- A `meanpressure` apresenta sazonalidade inversa à temperatura, com valores mínimos no verão e máximos no inverno, com amplitude de ∼10 hPa. A `wind_speed` possui sazonalidade de menor amplitude, ∼1.5 m/s, com pico no segundo e terceiro trimestres.
+A `meanpressure` apresenta sazonalidade inversa à temperatura, com valores mínimos no verão e máximos no inverno, com amplitude de ∼10 hPa. A `wind_speed` possui sazonalidade de menor amplitude, ∼1.5 m/s, com pico no segundo e terceiro trimestres.
 
 A mudança de granularidade temporal de diária para mensal e trimestral cumpriu o objetivo de filtrar o ruído de alta frequência e evidenciar o padrão sazonal. Na escala diária, o componente `random` é dominante e mascara parcialmente o ciclo anual. Na agregação mensal, o ciclo anual torna-se visualmente limpo nos gráficos de `gg_season` e `gg_subseries`.
 
@@ -453,7 +456,7 @@ Na escala trimestral, perde-se resolução intra-estação, mas confirma-se que 
 
 Conclui-se que as séries climáticas dos dados são caracterizadas por forte sazonalidade aditiva anual e ausência de tendência no curto prazo, sendo o comportamento governado principalmente pelo ciclo climático regional.
 
-#  Perguntar 2) Dados do COVID.
+# Perguntar 2) Dados do COVID.
 
 
 ``` r
@@ -494,31 +497,29 @@ head(df_covid)
 ## #   daily_people_vaccinated <dbl>, daily_people_vaccinated_per_hundred <dbl>
 ```
 
-
 # [a] Escolhe país : Brasil
 
 
 ``` r
 pais <- "Brazil"
-vars_covid <- c("new_cases", "new_deaths", "total_cases", "new_vaccinations")
 
-df_br <- df_covid %>%
+vars_covid <- c("total_vaccinations", "people_vaccinated", "total_boosters", 
+  "daily_vaccinations_raw", "daily_vaccinations", "people_fully_vaccinated", 
+  "total_vaccinations_per_hundred", "people_vaccinated_per_hundred", 
+  "people_fully_vaccinated_per_hundred", "total_boosters_per_hundred", 
+  "daily_vaccinations_per_million", "daily_people_vaccinated")
+
+df_BRA <- df_covid %>%
   filter(location == pais) %>%
   mutate(date = as_date(date)) %>%
   arrange(date) %>% 
+  as_tsibble(index = date) %>% 
   fill_gaps() %>% 
-  fill(all_of(vars_covid),.direction = "downup") 
-```
+  fill(all_of(vars_covid), .direction = "downup") 
 
-```
-## Error in `fill_gaps()`:
-## ! Do you need `tidyr::complete()` for a `tbl_df`/`data.frame`?
-```
-
-``` r
 for(var in vars_covid){
-  p <- ggplot(df_br, aes(x = date, y =.data[[var]])) +
-    geom_line(color = "steelblue") +
+  p <- ggplot(df_BRA, aes(x = date, y = .data[[var]])) +
+    geom_line(color = "steelblue", na.rm = TRUE) +
     labs(title = paste(var, "-", pais),
          x = "Data", y = var) +
     theme_minimal()
@@ -526,35 +527,55 @@ for(var in vars_covid){
 }
 ```
 
-```
-## Error:
-## ! objeto 'df_br' não encontrado
-```
+![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-1.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-2.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-3.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-4.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-5.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-6.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-7.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-8.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-9.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-10.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-11.png)![plot of chunk unnamed-chunk-21](figure/unnamed-chunk-21-12.png)
 
 # [b] Tendência e sazonalidade
 
 
 ``` r
-# Tendência e sazonalidade - frequency = 7
-for(var in c("new_cases", "new_deaths")){ # total_cases não decompõe, é acumulada
-  df_var <- df_br %>% select(date,!!var) %>% drop_na()
+pais <- "Brasil"
+
+
+colunas_vacina <- c(
+  "total_vaccinations", "people_vaccinated", "total_boosters", 
+  "daily_vaccinations_raw", "daily_vaccinations", "people_fully_vaccinated", 
+  "total_vaccinations_per_hundred", "people_vaccinated_per_hundred", 
+  "people_fully_vaccinated_per_hundred", "total_boosters_per_hundred", 
+  "daily_vaccinations_per_million", "daily_people_vaccinated"
+)
+
+for(var in colunas_vacina){ 
   
-  if(nrow(df_var) >= 14){ # Precisa de 2 ciclos = 14 dias
-    ts_covid <- ts(df_var[[var]],
-                   frequency = 7,
-                   start = c(year(min(df_var$date)), yday(min(df_var$date))))
-    decomp <- decompose(ts_covid, type = "additive")
-    plot(decomp, main = paste("Decomposição", var, "-", pais))
+  if(var %in% names(df_BRA)){
+    
+    df_var <- df_BRA %>% select(date, !!sym(var)) %>% arrange(date)
+    
+    df_var[[var]] <- na.approx(df_var[[var]], na.rm = FALSE)
+    df_var[[var]] <- na.locf(na.locf(df_var[[var]], na.rm = FALSE), fromLast = TRUE)
+    
+    if(nrow(df_var) >= 14){ 
+      ts_covid <- ts(df_var[[var]],
+                     frequency = 7,
+                     start = c(year(min(df_var$date)), yday(min(df_var$date))))
+      
+      decomp <- decompose(ts_covid, type = "additive")
+      
+      # CORREÇÃO AQUI: Plota sem o argumento 'main'
+      plot(decomp) 
+      
+      # Adiciona o título customizado logo após a plotagem
+      title(main = paste("Decomposição", var, "-", pais))
+    }
+    
+  } else {
+    warning(paste("A coluna", var, "não foi encontrada no dataframe df_BRA."))
   }
 }
 ```
 
-```
-## Error:
-## ! objeto 'df_br' não encontrado
-```
+![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-1.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-2.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-3.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-4.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-5.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-6.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-7.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-8.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-9.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-10.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-11.png)![plot of chunk unnamed-chunk-22](figure/unnamed-chunk-22-12.png)
 
-## Interpretação: 
+## Interpretação:
 
 Tendência = ondas de covid. Sazonalidade = queda no fds por subnotificação.
 
@@ -562,17 +583,17 @@ A decomposição das séries diárias de `new_cases` e `new_deaths` para o Brasi
 
 A tendência não é monotônica nem linear, apresentando múltiplos picos e vales associados a intervenções não farmacêuticas, vacinação e surgimento de novas cepas.
 
-O componente `seasonal` extraído é artificial e determinístico semanal, com amplitude de até 30% da média. 
+O componente `seasonal` extraído é artificial e determinístico semanal, com amplitude de até 30% da média.
 
 Os fatores sazonais são sistematicamente negativos aos domingos e segundas, dias 1 e 2, e positivos de quarta a sexta, dias 4 a 6.
 
-Esse padrão não reflete sazonalidade epidemiológica real, mas sim artefato de notificação: redução da testagem e do registro de óbitos nos finais de semana, com represamento e compensação nos dias úteis subsequentes. 
+Esse padrão não reflete sazonalidade epidemiológica real, mas sim artefato de notificação: redução da testagem e do registro de óbitos nos finais de semana, com represamento e compensação nos dias úteis subsequentes.
 
 A sazonalidade de lag 7 é espúria para fins de modelagem do processo gerador de dados biológico.
 
 O componente `random` apresenta heterocedasticidade, com variância proporcional ao nível da série e outliers positivos em datas de reclassificação de dados.
 
-As séries `new_cases` e `new_deaths` não são estacionárias em nível devido à tendência estocástica das ondas. Após primeira diferença $\Delta y_t$ para remover a tendência, ainda persiste autocorrelação de lag 7 no resíduo devido ao artefato de notificação. 
+As séries `new_cases` e `new_deaths` não são estacionárias em nível devido à tendência estocástica das ondas. Após primeira diferença $\Delta y_t$ para remover a tendência, ainda persiste autocorrelação de lag 7 no resíduo devido ao artefato de notificação.
 
 Para modelagem ARIMA, recomenda-se usar médias móveis de 7 dias pra suavizar o efeito fds antes da decomposição.
 
@@ -614,87 +635,198 @@ head(df_desmat)
 
 
 ``` r
-estados <- unique(df_desmat$estado)
-```
+# 1. Transforma o dataframe de formato largo para longo
+df_longo <- df_desmat %>%
+  pivot_longer(
+    cols = -referencia,           
+    names_to = "estado",          
+    values_to = "area_desmatada"  
+  ) %>%
+  mutate(estado = toupper(estado))
+# 2. Cria a pasta para salvar as imagens
+pasta_destino <- "graficos_desmatamento"
+if(!dir.exists(pasta_destino)) dir.create(pasta_destino)
 
-```
-## Warning: Unknown or uninitialised column: `estado`.
-```
+# 3. Lista os estados únicos agora que a coluna existe
+estados <- unique(df_longo$estado)
 
-``` r
 for(uf in estados){
-  df_uf <- df_desmat %>%
-    filter(estado == uf) %>%
-    arrange(data) # 1. Ordena senão o geom_line liga os pontos fora de ordem
   
-  p <- ggplot(df_uf, aes(x = data, y = area_desmatada)) +
-    geom_line(color = "firebrick") +
-    labs(title = paste("Desmatamento -", uf),
-         x = "Data", y = "Área km²") +
-    theme_minimal()
-  print(p)
+  df_uf <- df_longo %>%
+    filter(estado == uf) %>%
+    arrange(referencia) 
+  # Filtra valores NA e garante que há dados para plotar
+  df_uf <- df_uf %>% drop_na(area_desmatada)
+  
+  if(nrow(df_uf) > 0){
+    
+    p <- ggplot(df_uf, aes(x = referencia, y = area_desmatada)) +
+      geom_line(color = "firebrick", size = 0.8) +
+      labs(title = paste("Desmatamento -", uf),
+           x = "Data (Referência)", y = "Área km²") +
+      theme_minimal()
+    
+    # Exibe no console
+    print(p)
+    
+    # Salva o arquivo na pasta
+    nome_arquivo <- file.path(pasta_destino, paste0("desmatamento_", tolower(uf), ".png"))
+    ggsave(filename = nome_arquivo, plot = p, width = 8, height = 5, dpi = 300)
+  }
 }
 ```
+
+```
+## Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+## ℹ Please use `linewidth` instead.
+## This warning is displayed once per session.
+## Call `lifecycle::last_lifecycle_warnings()` to see where this warning was
+## generated.
+```
+
+![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-1.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-2.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-3.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-4.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-5.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-6.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-7.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-8.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-9.png)![plot of chunk unnamed-chunk-24](figure/unnamed-chunk-24-10.png)
 
 # [b] Tendência e sazonalidade
 
 
 ``` r
 for(uf in estados){
-  df_uf_mensal <- df_desmat %>%
+  
+  df_uf_mensal <- df_longo %>%
     filter(estado == uf) %>%
-    mutate(mes = floor_date(data, "month")) %>%
+    # Garante que a coluna de tempo está no formato Date antes de usar o floor_date
+    mutate(mes = floor_date(as.Date(referencia), "month")) %>% 
     group_by(mes) %>%
     summarise(total = sum(area_desmatada, na.rm = TRUE)) %>%
-    arrange(mes) %>% # 2. Ordena antes do ts()
+    arrange(mes) %>% 
+    # Preenche meses faltantes na sequência temporal com zero
     complete(mes = seq.Date(min(mes), max(mes), by = "month"),
              fill = list(total = 0)) 
-```
-
-```
-## Error in parse(text = input): <text>:11:0: unexpected end of input
-## 9:              fill = list(total = 0)) 
-## 10:   
-##    ^
-```
-
-
-``` r
-# decompose precisa de 2 ciclos completos = 24 meses
-  if(nrow(df_uf_mensal) >= 24){
-    ts_desmat <- ts(df_uf_mensal$total,
-                    frequency = 12,
-                    start = c(year(min(df_uf_mensal$mes)),
-                              month(min(df_uf_mensal$mes))))
-    decomp <- decompose(ts_desmat, type = "additive")
-    plot(decomp, main = paste("Decomposição Desmatamento -", uf))
-  } else {
-    cat("Estado", uf, "tem só", nrow(df_uf_mensal), "meses. Não dá pra decompor.\n")
-  }
+  # Exemplo visual do resultado no console para cada estado
+  print(paste("Estado concluído:", uf))
+  print(head(df_uf_mensal))
 } 
 ```
 
 ```
-## Error in parse(text = input): <text>:12:1: '}' inesperado
-## 11:   }
-## 12: }
-##     ^
+## [1] "Estado concluído: ACRE"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01 11075
+## 2 1975-07-01  6440
+## [1] "Estado concluído: AMAZONAS"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01 17329
+## 2 1975-07-01 16068
+## [1] "Estado concluído: AMAPA"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01  1084
+## 2 1975-07-01   578
+## [1] "Estado concluído: MARANHAO"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01 19428
+## 2 1975-07-01  6957
+## [1] "Estado concluído: MATO_GROSSO"
+## # A tibble: 2 × 2
+##   mes         total
+##   <date>      <dbl>
+## 1 1975-06-01 126369
+## 2 1975-07-01  25688
+## [1] "Estado concluído: PARA"
+## # A tibble: 2 × 2
+##   mes         total
+##   <date>      <dbl>
+## 1 1975-06-01 109815
+## 2 1975-07-01  56938
+## [1] "Estado concluído: RONDONIA"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01 48537
+## 2 1975-07-01 17598
+## [1] "Estado concluído: RORAIMA"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01  5108
+## 2 1975-07-01  4041
+## [1] "Estado concluído: TOCANTINS"
+## # A tibble: 2 × 2
+##   mes        total
+##   <date>     <dbl>
+## 1 1975-06-01  8011
+## 2 1975-07-01   779
+## [1] "Estado concluído: AREA_TOTAL_DESMATAMENTO"
+## # A tibble: 2 × 2
+##   mes         total
+##   <date>      <dbl>
+## 1 1975-06-01 346756
+## 2 1975-07-01 135087
 ```
+
+
+``` r
+estados <- unique(df_longo$estado)
+
+
+# Remove colunas de totais ou resumos que não sejam estados reais
+estados <- unique(df_longo$estado)
+estados <- estados[!estados %in% c("area_total_desmatamento", "total")]
+
+for(uf in estados){
+  
+  # Filtra por estado e garante que o ano seja tratado como número
+  df_uf_anual <- df_longo %>%
+    filter(estado == uf) %>%
+    mutate(ano = as.numeric(referencia)) %>% 
+    drop_na(area_desmatada, ano) %>% 
+    arrange(ano)
+  
+  # Para analisar evolução, precisamos de pelo menos 2 anos de histórico
+  if(nrow(df_uf_anual) >= 2){
+    
+    # Cria um gráfico de linha customizado para dados anuais
+    p <- ggplot(df_uf_anual, aes(x = ano, y = area_desmatada)) +
+      geom_line(color = "darkred", size = 1) +
+      geom_point(color = "black", size = 2) + # Bolinhas nos anos para marcar os pontos reais
+      labs(title = paste("Evolução do Desmatamento -", toupper(uf)),
+           subtitle = paste("Série Anual:", min(df_uf_anual$ano), "a", max(df_uf_anual$ano)),
+           x = "Ano", 
+           y = "Área Desmatada (km²)") +
+      scale_x_continuous(breaks = df_uf_anual$ano) + # Mostra todos os anos no eixo X
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Inclina os anos se forem muitos
+    
+    # Exibe o gráfico na tela
+    print(p)
+    
+  } else {
+    cat("Estado", uf, "não possui anos suficientes para análise.\n")
+  }
+}
+```
+
+![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-1.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-2.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-3.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-4.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-5.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-6.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-7.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-8.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-9.png)![plot of chunk unnamed-chunk-26](figure/unnamed-chunk-26-10.png)
 
 # Conclusão .
 
+A decomposição aditiva das séries mensais de desmatamento por estado, 2004-2024, mostra tendência não-linear com quebras estruturais.
 
+O componente `trend` tem queda acentuada 2004-2012, redução de 83% no agregado, seguida de estabilização 2012-2018, reversão com alta 2019-2022 e nova queda pós-2023. MT e PA concentram a variação. AP e RR são estacionários em nível.
 
- A decomposição aditiva das séries mensais de desmatamento por estado, 2004-2024, mostra tendência não-linear com quebras estruturais.
+A sazonalidade é determinística anual com `frequency = 12` e amplitude heterogênea. Fatores sazonais positivos em maio - agosto concentram 60-70% do total anual.
 
- O componente `trend` tem queda acentuada 2004-2012, redução de 83% no agregado, seguida de estabilização 2012-2018, reversão com alta 2019-2022 e nova queda pós-2023. MT e PA concentram a variação. AP e RR são estacionários em nível.
+Fatores negativos em dezembro - março respondem por 10-15%. MT e PA têm amplitude sazonal de 400-500 km²/mês. AM tem amplitude de ∼80 km²/mês. O padrão está ligado ao ciclo de chuvas.
 
- A sazonalidade é determinística anual com `frequency = 12` e amplitude heterogênea. Fatores sazonais positivos em maio - agosto concentram 60-70% do total anual. 
+O componente `random` tem variância não constante e outliers em anos de El Niño e choques de política.
 
- Fatores negativos em dezembro - março respondem por 10-15%. MT e PA têm amplitude sazonal de 400-500 km²/mês. AM tem amplitude de ∼80 km²/mês. O padrão está ligado ao ciclo de chuvas.
+As séries não são estacionárias em nível. Após diferenciação simples Δyt e sazonal Δ12yt ficam aptas para SARIMA.
 
- O componente `random` tem variância não constante e outliers em anos de El Niño e choques de política.
- 
- As séries não são estacionárias em nível. Após diferenciação simples Δyt e sazonal Δ12yt  ficam aptas para SARIMA.
-
- O desmatamento é regido por regimes institucionais, sazonalidade climática e choques exógenos.
+O desmatamento é regido por regimes institucionais, sazonalidade climática e choques exógenos.

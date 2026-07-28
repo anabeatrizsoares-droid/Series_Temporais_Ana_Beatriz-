@@ -1,14 +1,13 @@
 ---
-title: " Lista 1 - Séries temporais"
+title: " Lista 1(Séries temporais)"
 author: "Ana Beatriz de Souza Soares."
 format: html
 editor: visual
 ---
 
-# Perguntar 1:Dados climáticos.
+#Perguntar 1:Dados climáticos.
 
-```{r, warning=FALSE, message=FALSE}
-
+```{r,message=FALSE}
 #Bibliotecas de séries temporais
 
 library(dplyr)
@@ -20,23 +19,25 @@ library(lubridate)
 library(readr)
 library(TSA)
 library(tsibble)
+library(tidyr)
+library(zoo)
 
 ```
 
 ```{r}
 
-# Carregando banco de dados em formato csv
+#Carregando banco de dados em formato csv
 
 df_cli <- read_csv("C:/Users/loja/Documents/GitHub/Series_Temporais_Ana_Beatriz-/dados/DailyDelhiClimateTrain.csv")
 head(df_cli)
 
 ```
 
-## ANALISE DIARIA
+# ANÁLISE DIARIA
 
 ```{r}
 
-# transformando para o formato tsibble
+#transformando para o formato tsibble
 serie_diaria <- df_cli %>%
   mutate(date = as_date(date)) %>%
   as_tsibble(index = date)
@@ -47,7 +48,7 @@ serie_diaria
 
 ```{r}
 
-## Plot das series diárias
+#Plot das series diárias
 
 serie_diaria %>%
   pivot_longer(-date) %>%
@@ -55,13 +56,13 @@ serie_diaria %>%
   geom_line() +
   facet_grid(name ~., scales = "free_y") +
   labs(title = "Séries Temporais Diárias", x = "Data", y = "Valor")
-
 ```
 
-## Estudando a sazonalidade diária - period = 365 para dados diários
+# Estudando a sazonalidade diária - period = 365 para dados diários
 
 ```{r}
-### Temperatura média
+#Temperatura média
+
 serie_diaria %>%
   model(classical_decomposition(meantemp, type = "additive")) %>%
   components() %>%
@@ -72,7 +73,7 @@ serie_diaria %>%
 
 ```{r}
 
-### Humidade
+# Humidade
 
 serie_diaria %>%
   model(classical_decomposition(humidity, type = "additive")) %>%
@@ -84,7 +85,7 @@ serie_diaria %>%
 
 ```{r}
 
-### Pressão
+# Pressão
 serie_diaria %>%
   model(classical_decomposition(meanpressure, type = "additive")) %>%
   components() %>%
@@ -95,7 +96,7 @@ serie_diaria %>%
 
 ```{r}
 
-### Velocidade do vento
+# Velocidade do vento
 serie_diaria %>%
   model(classical_decomposition(wind_speed, type = "additive")) %>%
   components() %>%
@@ -104,48 +105,48 @@ serie_diaria %>%
 
 ```
 
-## ANALISE MENSAL
+# ANÁLISE MENSAL
 
 ```{r}
 
-## transformando para o formato tsibble mensal
+# transformando para o formato tsibble mensal
 serie_mensal <- df_cli %>%
-  mutate(mes_ano = yearmonth(date)) %>%
-  group_by(mes_ano) %>%
-  summarise(humidity = mean(humidity, na.rm = TRUE),
-            meanpressure = mean(meanpressure, na.rm = TRUE),
-            meantemp = mean(meantemp, na.rm = TRUE),
-            wind_speed = mean(wind_speed, na.rm = TRUE)) %>%
-  as_tsibble(index = mes_ano)
+mutate(mes_ano = yearmonth(date)) %>%
+group_by(mes_ano) %>%
+summarise(humidity = mean(humidity, na.rm = TRUE),
+          meanpressure = mean(meanpressure, na.rm = TRUE),
+          meantemp = mean(meantemp, na.rm = TRUE),
+          wind_speed = mean(wind_speed, na.rm = TRUE)) %>%
+as_tsibble(index = mes_ano)
 
 serie_mensal
 
 ```
 
 ```{r}
-## Plot das series mensais
+# Plot das series mensais
 serie_mensal %>%
-  pivot_longer(-mes_ano) %>%
-  ggplot(aes(x = mes_ano, y = value, colour = name)) +
-  geom_line() +
-  facet_grid(name ~., scales = "free_y") +
-  labs(title = "Séries Temporais Mensais", x = "Mês/Ano", y = "Valor")
+pivot_longer(-mes_ano) %>%
+ggplot(aes(x = mes_ano, y = value, colour = name)) +
+geom_line() +
+facet_grid(name ~., scales = "free_y") +
+labs(title = "Séries Temporais Mensais", x = "Mês/Ano", y = "Valor")
 ```
 
-## Estudando a sazonalidade mensal
+# Estudando a sazonalidade mensal
 
 ```{r}
 
 # Humidade
 serie_mensal %>%
-  gg_season(humidity, labels = "both") +
-  labs(y = "Média mensal da Humidade",
-       title = "Sazonalidade: Humidade")
+gg_season(humidity, labels = "both") +
+labs(y = "Média mensal da Humidade",
+title = "Sazonalidade: Humidade")
 
 serie_mensal %>%
-  gg_subseries(humidity) +
-  labs(y = "Humidade",
-       title = "Sub-séries Sazonais: Humidade")
+gg_subseries(humidity) +
+labs(y = "Humidade",
+title = "Sub-séries Sazonais: Humidade")
 
 ```
 
@@ -153,14 +154,14 @@ serie_mensal %>%
 
 # Temperatura
 serie_mensal %>%
-  gg_season(meantemp, labels = "both") +
-  labs(y = "Média mensal da Temperatura",
-       title = "Sazonalidade: Temperatura")
+gg_season(meantemp, labels = "both") +
+labs(y = "Média mensal da Temperatura",
+title = "Sazonalidade: Temperatura")
 
 serie_mensal %>%
-  gg_subseries(meantemp) +
-  labs(y = "Temperatura",
-  title = "Sub-séries Sazonais: Temperatura")
+gg_subseries(meantemp) +
+labs(y = "Temperatura",
+title = "Sub-séries Sazonais: Temperatura")
 
 ```
 
@@ -168,9 +169,9 @@ serie_mensal %>%
 
 # Pressão
 serie_mensal %>%
-  gg_season(meanpressure, labels = "both") +
-  labs(y = "Média mensal da Pressão",
-       title = "Sazonalidade: Pressão")
+gg_season(meanpressure, labels = "both") +
+labs(y = "Média mensal da Pressão",
+title = "Sazonalidade: Pressão")
 
 ```
 
@@ -178,9 +179,9 @@ serie_mensal %>%
 
 # Velocidade do vento
 serie_mensal %>%
-  gg_season(wind_speed, labels = "both") +
-  labs(y = "Média mensal do Vento",
-       title = "Sazonalidade: Velocidade do Vento")
+gg_season(wind_speed, labels = "both") +
+labs(y = "Média mensal do Vento",
+title = "Sazonalidade: Velocidade do Vento")
 
 ```
 
@@ -188,32 +189,32 @@ serie_mensal %>%
 
 # Decomposição aditiva mensal - period = 12
 serie_mensal %>%
-  model(classical_decomposition(meantemp, type = "additive")) %>%
-  components() %>%
-  autoplot() +
-  labs(title = "Decomposição clássica aditiva - Temperatura Média Mensal")
+model(classical_decomposition(meantemp, type = "additive")) %>%
+components() %>%
+autoplot() +
+labs(title = "Decomposição clássica aditiva - Temperatura Média Mensal")
 
 serie_mensal %>%
-  model(classical_decomposition(humidity, type = "additive")) %>%
-  components() %>%
-  autoplot() +
-  labs(title = "Decomposição clássica aditiva - Humidade Mensal")
+model(classical_decomposition(humidity, type = "additive")) %>%
+components() %>%
+autoplot() +
+labs(title = "Decomposição clássica aditiva - Humidade Mensal")
 
 ```
 
-## ANALISE TRIMESTRAL
+# ANÁLISE TRIMESTRAL
 
 ```{r}
 
 # transformando para o formato tsibble trimestral
 serie_tri <- df_cli %>%
-  mutate(tri_ano = yearquarter(date)) %>%
-  group_by(tri_ano) %>%
-  summarise(humidity = mean(humidity, na.rm = TRUE),
-            meanpressure = mean(meanpressure, na.rm = TRUE),
-            meantemp = mean(meantemp, na.rm = TRUE),
-            wind_speed = mean(wind_speed, na.rm = TRUE)) %>%
-  as_tsibble(index = tri_ano)
+mutate(tri_ano = yearquarter(date)) %>%
+group_by(tri_ano) %>%
+summarise(humidity = mean(humidity, na.rm = TRUE),
+          meanpressure = mean(meanpressure, na.rm = TRUE),
+          meantemp = mean(meantemp, na.rm = TRUE),
+          wind_speed = mean(wind_speed, na.rm = TRUE)) %>%
+as_tsibble(index = tri_ano)
 
 serie_tri
 
@@ -235,20 +236,20 @@ serie_tri %>%
 
 # Estudando a sazonalidade trimestral
 serie_tri %>%
-  gg_season(meantemp, labels = "both") +
-  labs(y = "Média trimestral da Temperatura",
-       title = "Sazonalidade: Temperatura")
+gg_season(meantemp, labels = "both") +
+labs(y = "Média trimestral da Temperatura",
+title = "Sazonalidade: Temperatura")
 
 serie_tri %>%
-  gg_subseries(meantemp) +
-  labs(y = "Temperatura",
-       title = "Sub-séries Sazonais: Temperatura")
+gg_subseries(meantemp) +
+labs(y = "Temperatura",
+title = "Sub-séries Sazonais: Temperatura")
 
 ```
 
 ```{r}
 
-## Decomposição aditiva trimestral - period = 4
+# Decomposição aditiva trimestral - periodo = 4
 serie_tri %>%
   model(classical_decomposition(meantemp, type = "additive")) %>%
   components() %>%
@@ -269,7 +270,7 @@ Sazonalidade: Forte e anual em todas variáveis. `meantemp` tem pico em Q2 = abr
 
 Por que mensal e trimestral: No diário você vê ruído. No mensal vê o ciclo anual limpo. No trimestral perde detalhe mas confirma que a sazonalidade é de 4 estações.
 
-## Conclusão .
+# Conclusão .
 
 A análise exploratória das séries temporais climáticas nesse conjunto de dados, no período de 2013 a 2017, foi realizada em três granularidades distintas: diária, mensal e trimestral.
 
@@ -308,50 +309,77 @@ head(df_covid)
 
 ```
 
-# [a] Escolhe país : Brasil
+# $$a$$ Escolhe país : Brasil
 
 ```{r}
-
 pais <- "Brazil"
-vars_covid <- c("new_cases", "new_deaths", "total_cases", "new_vaccinations")
 
-df_br <- df_covid %>%
+vars_covid <- c("total_vaccinations", "people_vaccinated", "total_boosters", 
+  "daily_vaccinations_raw", "daily_vaccinations", "people_fully_vaccinated", 
+  "total_vaccinations_per_hundred", "people_vaccinated_per_hundred", 
+  "people_fully_vaccinated_per_hundred", "total_boosters_per_hundred", 
+  "daily_vaccinations_per_million", "daily_people_vaccinated")
+
+df_BRA <- df_covid %>%
   filter(location == pais) %>%
   mutate(date = as_date(date)) %>%
   arrange(date) %>% 
+  as_tsibble(index = date) %>% 
   fill_gaps() %>% 
-  fill(all_of(vars_covid),.direction = "downup") 
+  fill(all_of(vars_covid), .direction = "downup") 
 
 for(var in vars_covid){
-  p <- ggplot(df_br, aes(x = date, y =.data[[var]])) +
-    geom_line(color = "steelblue") +
-    labs(title = paste(var, "-", pais),
-         x = "Data", y = var) +
-    theme_minimal()
-  print(p)
+p <- ggplot(df_BRA, aes(x = date, y = .data[[var]])) +
+geom_line(color = "steelblue", na.rm = TRUE) +
+labs(title = paste(var, "-", pais),
+x = "Data", y = var) +
+theme_minimal()
+print(p)
 }
-
 ```
 
-# [b] Tendência e sazonalidade
+# $$b$$ Tendência e sazonalidade
 
 ```{r}
-# Tendência e sazonalidade - frequency = 7
-for(var in c("new_cases", "new_deaths")){ # total_cases não decompõe, é acumulada
-  df_var <- df_br %>% select(date,!!var) %>% drop_na()
-  
-  if(nrow(df_var) >= 14){ # Precisa de 2 ciclos = 14 dias
-    ts_covid <- ts(df_var[[var]],
-                   frequency = 7,
-                   start = c(year(min(df_var$date)), yday(min(df_var$date))))
-    decomp <- decompose(ts_covid, type = "additive")
-    plot(decomp, main = paste("Decomposição", var, "-", pais))
-  }
-}
+pais <- "Brasil"
 
+
+colunas_vacina <- c(
+  "total_vaccinations", "people_vaccinated", "total_boosters", 
+  "daily_vaccinations_raw", "daily_vaccinations", "people_fully_vaccinated", 
+  "total_vaccinations_per_hundred", "people_vaccinated_per_hundred", 
+  "people_fully_vaccinated_per_hundred", "total_boosters_per_hundred", 
+  "daily_vaccinations_per_million", "daily_people_vaccinated"
+)
+
+for(var in colunas_vacina){ 
+  
+if(var %in% names(df_BRA)){
+    
+df_var <- df_BRA %>% select(date, !!sym(var)) %>% arrange(date)
+df_var[[var]] <- na.approx(df_var[[var]], na.rm = FALSE)
+df_var[[var]] <- na.locf(na.locf(df_var[[var]], na.rm = FALSE), fromLast = TRUE)
+    
+if(nrow(df_var) >= 14){ 
+ts_covid <- ts(df_var[[var]],frequency = 7,
+start = c(year(min(df_var$date)), yday(min(df_var$date))))
+      
+decomp <- decompose(ts_covid, type = "additive")
+      
+# CORREÇÃO AQUI: Plota sem o argumento 'main'
+plot(decomp) 
+      
+# Adiciona o título customizado logo após a plotagem
+title(main = paste("Decomposição", var, "-", pais))
+}
+    
+} else {
+warning(paste("A coluna", var, "não foi encontrada no dataframe df_BRA."))
+}
+}
 ```
 
-## Interpretação:
+# Interpretação:
 
 Tendência = ondas de covid. Sazonalidade = queda no fds por subnotificação.
 
@@ -382,57 +410,108 @@ head(df_desmat)
 
 ```
 
-# [a] Gráficos para cada estado
+# $$a$$ Gráficos para cada estado
 
 ```{r}
 
-estados <- unique(df_desmat$estado)
+# 1. Transforma o dataframe de formato largo para longo
+df_longo <- df_desmat %>%
+pivot_longer( cols = -referencia,names_to = "estado",          
+values_to = "area_desmatada"  
+) %>%
+mutate(estado = toupper(estado))
+
+# 2. Cria a pasta para salvar as imagens
+pasta_destino <- "graficos_desmatamento"
+if(!dir.exists(pasta_destino)) dir.create(pasta_destino)
+
+# 3. Lista os estados únicos agora que a coluna existe
+estados <- unique(df_longo$estado)
 
 for(uf in estados){
-  df_uf <- df_desmat %>%
-    filter(estado == uf) %>%
-    arrange(data) # 1. Ordena senão o geom_line liga os pontos fora de ordem
   
-  p <- ggplot(df_uf, aes(x = data, y = area_desmatada)) +
-    geom_line(color = "firebrick") +
-    labs(title = paste("Desmatamento -", uf),
-         x = "Data", y = "Área km²") +
-    theme_minimal()
-  print(p)
+df_uf <- df_longo %>%
+filter(estado == uf) %>%
+arrange(referencia) 
+# Filtra valores NA e garante que há dados para plotar
+df_uf <- df_uf %>% drop_na(area_desmatada)
+  
+if(nrow(df_uf) > 0){
+    
+p <- ggplot(df_uf, aes(x = referencia, y = area_desmatada)) +
+geom_line(color = "firebrick", size = 0.8) +
+labs(title = paste("Desmatamento -", uf),
+x = "Data (Referência)", y = "Área km²") +
+theme_minimal()
+    
+# Exibe no console
+print(p)
+    
+# Salva o arquivo na pasta
+nome_arquivo <- file.path(pasta_destino, paste0("desmatamento_", tolower(uf), ".png"))
+ggsave(filename = nome_arquivo, plot = p, width = 8, height = 5, dpi = 300)
 }
-
+}
 ```
 
-# [b] Tendência e sazonalidade
+# $$b$$ Tendência e sazonalidade
 
 ```{r}
+
 for(uf in estados){
-  df_uf_mensal <- df_desmat %>%
-    filter(estado == uf) %>%
-    mutate(mes = floor_date(data, "month")) %>%
-    group_by(mes) %>%
-    summarise(total = sum(area_desmatada, na.rm = TRUE)) %>%
-    arrange(mes) %>% # 2. Ordena antes do ts()
-    complete(mes = seq.Date(min(mes), max(mes), by = "month"),
-             fill = list(total = 0)) 
+  
+df_uf_mensal <- df_longo %>%
+filter(estado == uf) %>%
+# Garante que a coluna de tempo está no formato Date antes de usar o floor_date
+mutate(mes = floor_date(as.Date(referencia), "month")) %>% 
+group_by(mes) %>%
+summarise(total = sum(area_desmatada, na.rm = TRUE)) %>%
+arrange(mes) %>% 
+# Preenche meses faltantes na sequência temporal com zero
+complete(mes = seq.Date(min(mes), max(mes), by = "month"),
+fill = list(total = 0)) 
+# Exemplo visual do resultado no console para cada estado
+print(paste("Estado concluído:", uf))
+print(head(df_uf_mensal))
+} 
   
 ```
 
 ```{r}
-# decompose precisa de 2 ciclos completos = 24 meses
-  if(nrow(df_uf_mensal) >= 24){
-    ts_desmat <- ts(df_uf_mensal$total,
-                    frequency = 12,
-                    start = c(year(min(df_uf_mensal$mes)),
-                              month(min(df_uf_mensal$mes))))
-    decomp <- decompose(ts_desmat, type = "additive")
-    plot(decomp, main = paste("Decomposição Desmatamento -", uf))
-  } else {
-    cat("Estado", uf, "tem só", nrow(df_uf_mensal), "meses. Não dá pra decompor.\n")
-  }
-} 
+estados <- unique(df_longo$estado)
 
 
+# Remove colunas de totais ou resumos que não sejam estados reais
+estados <- unique(df_longo$estado)
+estados <- estados[!estados %in% c("area_total_desmatamento", "total")]
+
+for(uf in estados){
+  
+# Filtra por estado e garante que o ano seja tratado como número
+df_uf_anual <- df_longo %>%
+filter(estado == uf) %>%
+mutate(ano = as.numeric(referencia)) %>% 
+drop_na(area_desmatada, ano) %>% 
+arrange(ano)
+  
+# Para analisar evolução, precisamos de pelo menos 2 anos de histórico
+if(nrow(df_uf_anual) >= 2){
+    
+# Cria um gráfico de linha customizado para dados anuais
+p <- ggplot(df_uf_anual, aes(x = ano, y = area_desmatada)) +
+geom_line(color = "darkred", size = 1) +
+geom_point(color = "black", size = 2) + # Bolinhas nos anos para marcar os pontos reais
+labs(title = paste("Evolução do Desmatamento -", toupper(uf)),
+subtitle = paste("Série Anual:", min(df_uf_anual$ano), "a", max(df_uf_anual$ano)),
+x = "Ano", y = "Área Desmatada (km²)") +scale_x_continuous(breaks = df_uf_anual$ano) +   theme_minimal() +
+theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# Exibe o gráfico na tela
+print(p)
+    
+} else {
+cat("Estado", uf, "não possui anos suficientes para análise.\n")
+}
+}
 ```
 
 # Conclusão .
