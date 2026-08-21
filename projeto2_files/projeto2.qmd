@@ -1,0 +1,598 @@
+---
+format: html
+editor: visual
+title: "Projeto 2: Modelos ARIMA e SARIMA"
+subtitle: "Análise do PIB dos EUA e Produção de Cerveja na Austrália"
+author: "Ana Beatriz de Souza Soares"
+---
+
+## 1. Introdução
+
+A análise de séries temporais é uma área da estatística que estuda dados coletados sequencialmente ao longo do tempo. Diferente de dados transversais, em séries temporais as observações possuem dependência temporal, ou seja, o valor atual está relacionado com valores passados. Essa característica torna a previsão um desafio, mas também uma ferramenta fundamental para planejamento e tomada de decisão.
+
+No contexto econômico e industrial, a previsão de séries temporais é amplamente utilizada. Governos utilizam para projetar o PIB e a inflação. Empresas utilizam para prever demanda, vendas e produção. A capacidade de antecipar tendências e ciclos sazonais permite reduzir custos e alocar recursos de forma mais eficiente.
+
+Dentre os diversos modelos existentes, os modelos ARIMA e sua extensão SARIMA se destacam por sua simplicidade e eficiência. O modelo ARIMA é capaz de capturar padrões de tendência. Já o modelo SARIMA adiciona componentes para tratar a sazonalidade.
+
+Este trabalho tem como objetivo aplicar os modelos ARIMA e SARIMA na previsão de duas séries reais: o PIB dos Estados Unidos, que apresenta forte tendência de crescimento, e a Produção de Cerveja na Austrália, que apresenta tendência de queda e forte sazonalidade trimestral.
+
+O projeto está estruturado da seguinte forma: na seção 2 é feita a contextualização do problema. Na seção 3 é apresentada a fundamentação teórica. Na seção 4 é realizada a análise descritiva. Na seção 5 é feita a modelagem e previsão. Por fim, na seção 6 são apresentadas as conclusões.
+
+## 2. Contextualização do Problema
+
+O desafio é prever duas variáveis econômicas importantes para planejamento: 1. **PIB dos EUA**: Possui forte tendência de crescimento. Prever o PIB ajuda governos a planejar políticas fiscais e orçamentárias. 2. **Produção de Cerveja na Austrália**: Possui tendência de queda e sazonalidade trimestral. Prever ajuda indústrias a planejar produção, estoque e marketing.
+
+Proposta de Solução: Utilizar modelo ARIMA para a série com tendência e SARIMA para a série com sazonalidade.
+
+## 3. Fundamentação Teórica
+
+### 3.1 Modelo ARIMA(p,d,q)
+
+ARIMA combina 3 componentes: AR(p) - Autoregressivo, I(d) - Integração/diferenciação, MA(q) - Média Móvel. Usado quando a série é não estacionária devido à tendência. Fórmula: $\phi(B)(1-B)^d Z_t = \theta(B)\epsilon_t$
+
+### 3.2 Modelo SARIMA(p,d,q)(P,D,Q)\[s\]
+
+Extensão do ARIMA para dados sazonais. Adiciona componentes AR e MA sazonais com período `s`. Fórmula: $\phi(B)\Phi(B^s)(1-B)^d(1-B^s)^D Z_t = \theta(B)\Theta(B^s)\epsilon_t$
+
+```{r, echo=FALSE,message=FALSE}
+library(dplyr)
+library(fable)
+library(fpp3)
+library(forecast)
+library(ggplot2)
+library(gridExtra)
+library(TSA)
+library(tidyverse)
+library(tsibble)
+library(tsibbledata)
+library(readr)
+```
+
+## Modelo ARIMA
+
+*Característica:* - `us_gdp`: Série não estacionária, com tendência crescente clara. Não apresenta sazonalidade.
+
+```{r, echo=FALSE}
+GDP_ <- read_csv("C:/Users/usar/Downloads/GDP .csv")
+
+us_gdp <- GDP_ |>
+  transmute(Quarter = yearquarter(observation_date), GDP = GDP) |>
+  as_tsibble(index = Quarter)
+
+head(us_gdp)
+```
+
+```{r, echo=FALSE}
+tail(us_gdp)
+```
+
+```{r, echo=FALSE}
+plot_us_gdp <- us_gdp |>
+  autoplot(GDP) +
+  labs(
+    title = "PIB EUA",
+    y = "Bilhões USD"
+  )
+
+plot_us_gdp
+
+```
+
+O gráfico superior mostra uma tendência clara de crescimento do PIB dos EUA ao longo das décadas.
+
+## ACF e PACF
+
+```{r, echo=FALSE}
+acf <- us_gdp %>%
+  ACF(GDP, lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "ACF")
+
+pacf <- us_gdp %>%
+  PACF(GDP, lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "PACF")
+
+gridExtra::grid.arrange(
+  plot_us_gdp, acf, pacf,
+  layout_matrix = rbind(c(1,1),c(2,3))
+)
+
+```
+
+A ACF apresenta valores altos e persistentes ao longo de vários lags; Esse comportamento é típico de séries com tendência: a autocorrelação demora a decair;Indica necessidade de diferenciação para tornar a série estacionária.A PACF mostra um pico significativo apenas no primeiro lag e depois valores próximos de zero.
+
+Os gráficos confirmam que o PIB dos EUA apresenta forte tendência crescimento do PIB dos EUA ao longo das décadas e não é estacionário em nível.
+
+## Teste de estacionariedade
+
+Aplicamos o teste KPSS para verificar se a série é estacionária.
+
+```{r, echo=FALSE}
+us_gdp %>%
+  features(GDP, unitroot_kpss)
+```
+
+Estatística KPSS (kpss_stat) = 4.732938
+
+p‑valor (kpss_pvalue) = 0.01
+
+Como o p‑valor é muito baixo (0.01), rejeitamos H0. Isso significa que o PIB dos EUA, na forma como está na sua série, não é estacionário — há tendência ou crescimento ao longo do tempo. \## Aplicando diferenciação
+
+```{r, echo=FALSE}
+plot_us_gdpD <- us_gdp %>%
+  autoplot(difference(GDP)) +
+  labs(
+    title = "PIB EUA",
+    y = "% of GDP"
+  )
+
+plot_us_gdpD
+
+```
+
+## Teste de estacionariedade na série diferenciada
+
+```{r, echo=FALSE}
+us_gdp %>%
+  features(difference(GDP), unitroot_kpss)
+```
+
+Estatística KPSS (kpss_stat) = 2.97908
+
+p‑valor (kpss_pvalue) = 0.01
+
+Como o p‑valor é muito baixo (0.01), rejeitamos H0. Isso significa que o PIB dos EUA, na forma como está na sua série, não é estacionário — há tendência ou crescimento ao longo do tempo.
+
+## ACF e PACF da série diferenciada
+
+```{r, echo=FALSE}
+acf_D <- us_gdp %>%
+  ACF(difference(GDP), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "ACF")
+
+pacf_D <- us_gdp %>%
+  PACF(difference(GDP), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "PACF")
+
+gridExtra::grid.arrange(
+  plot_us_gdpD, acf_D, pacf_D,
+  layout_matrix = rbind(c(1,1),c(2,3))
+)
+```
+
+# segunda diferenciação
+
+```{r, echo=FALSE}
+plot_us_gdpDD <- us_gdp %>%
+  autoplot(difference(difference(GDP))) +
+  labs(
+    title = "PIB EUA - Segunda diferença",
+    y = "% of GDP"
+  )
+
+plot_us_gdpDD
+
+
+```
+
+## Teste de estacionariedade na série diferenciada
+
+```{r, echo=FALSE}
+us_gdp %>%
+  features(difference(difference(GDP)), unitroot_kpss)
+```
+
+Estatística KPSS = 0.02535629
+
+p‑valor = 0.1
+
+Interpretação:Como o p‑valor é maior que 0.05, não rejeitamos H0 de estacionariedade;Isso significa que, após a Segunda diferença, a série do PIB dos EUA se tornou estacionária;Portanto, a ordem de diferenciação adequada para o modelo ARIMA é d = 1.
+
+## ACF e PACF da série diferenciada
+
+```{r, echo=FALSE}
+acf_D <- us_gdp %>%
+  ACF(difference(difference(GDP)), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "ACF")
+
+pacf_D <- us_gdp %>%
+  PACF(difference(difference(GDP)), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "PACF")
+
+gridExtra::grid.arrange(
+  plot_us_gdpDD, acf_D, pacf_D,
+  layout_matrix = rbind(c(1,1),c(2,3))
+)
+
+```
+
+O gráfico principal mostra que, após aplicar duas diferenciações, a série oscila em torno de zero, sem tendência aparente;Isso confirma que a tendência de crescimento foi completamente removida;Há um pico muito forte em 2020 Q1, refletindo o impacto da pandemia sobre o PIB — a segunda diferença amplifica esse choque.
+
+A ACF da série duplamente diferenciada mostra correlações baixas e dentro dos limites de confiança na maioria dos lags;Isso indica que a série já está estacionária e não há forte dependência serial remanescente;Poucos lags significativos sugerem que o componente de médias móveis (MA) seria de ordem baixa.
+
+A PACF também mostra poucos picos relevantes, com valores próximos de zero além dos primeiros lags;Isso sugere que o componente autorregressivo (AR) também seria de ordem baixa.
+
+A segunda diferença garante estacionariedade, mas pode ser excessiva, já que a primeira diferença já havia estabilizado a série.
+
+##Separação treino e teste
+
+```{r, echo=FALSE}
+train <- us_gdp %>%
+  filter_index("1947-01-01" ~ "2021-10-01")
+
+test <- us_gdp %>%
+  filter_index("2022-01-01" ~ .)
+
+tail(train)
+```
+
+```{r, echo=FALSE}
+test
+```
+
+##Teste de estacionariedade
+
+```{r, echo=FALSE}
+train %>%
+  features(GDP, unitroot_kpss)
+```
+
+conjunto de treino mostra:
+
+Estatística KPSS = 4.6281
+
+p‑valor = 0.01
+
+Como o p‑valor é muito baixo (0.01), rejeitamos H0. Isso significa que o PIB dos EUA, na forma como está na sua série, não é estacionário — há tendência ou crescimento ao longo do tempo. \## Série Diferenciada
+
+```{r, echo=FALSE}
+plot_us_gdpD <- train %>%
+  autoplot(difference(GDP)) +
+  labs(
+    title = "PIB EUA",
+    y = "% of GDP"
+  )
+
+plot_us_gdpD 
+```
+
+ACF e PACF da série Diferenciada
+
+```{r, echo=FALSE}
+acf_D <- train %>%
+  ACF(difference(GDP), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "ACF")
+
+pacf_D <- train %>%
+  PACF(difference(GDP), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "PACF")
+
+gridExtra::grid.arrange(
+  plot_us_gdpD, acf_D, pacf_D,
+  layout_matrix = rbind(c(1,1),c(2,3))
+)
+```
+
+## Estacionariedade após diferenciação
+
+```{r, echo=FALSE}
+train %>%
+  features(difference(GDP), unitroot_kpss)
+  
+```
+
+Estatística KPSS = 2.704491
+
+p‑valor = 0.01
+
+Interpretação:O p‑valor é muito baixo, então rejeitamos H0 de estacionariedade.
+
+##Segunda Série Diferenciada
+
+```{r, echo=FALSE}
+plot_us_gdpDD <- train %>%
+  autoplot(difference(difference(GDP))) +
+  labs(
+    title = "PIB EUA",
+    y = "% of GDP"
+  )
+
+plot_us_gdpDD
+```
+
+## ACF e PACF da Segunda série Diferenciada
+
+```{r, echo=FALSE}
+acf_D <- train %>%
+  ACF(difference(difference(GDP)), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "ACF")
+
+pacf_D <- train %>%
+  PACF(difference(difference(GDP)), lag_max = 20) %>% 
+  autoplot() +
+  labs(title = "PACF")
+
+gridExtra::grid.arrange(
+  plot_us_gdpDD, acf_D, pacf_D,
+  layout_matrix = rbind(c(1,1),c(2,3))
+)
+```
+
+## Estacionariedade após Segunda diferenciação
+
+```{r, echo=FALSE}
+train %>%
+  features(difference(difference(GDP)), unitroot_kpss)
+  
+```
+
+Estatística KPSS = 0.0609
+
+p‑valor = 0.1
+
+Interpretação:Como o p‑valor é maior que 0.05, não rejeitamos H0 de estacionariedade;Isso significa que, nessa versão da série após a Segunda diferença, o PIB dos EUA já está estacionário;A tendência foi removida e a série oscila em torno de uma média estável.
+
+#Ajuste de modelos
+
+```{r, echo=FALSE}
+caf_fit <- train %>%
+  model(
+    ETS1 = ETS(GDP ~ error('A') + trend('A') + season('N')),
+    ETS2 = ETS(GDP ~ error('A') + trend('M') + season('N')),
+    arima012 = ARIMA(GDP~ pdq(0,1,2)),
+    arima212 = ARIMA(GDP ~ pdq(2,2,2)),
+    arima111 = ARIMA(GDP ~ pdq(1,2,1)),
+    rb = ARIMA(GDP ~ pdq(0,2,0)),
+    auto = ARIMA(GDP)
+  )
+```
+
+##Modelo automático
+
+```{r, echo=FALSE}
+
+caf_fit %>% select(auto)
+
+```
+
+ARIMA(0,2,2)
+
+```{r, echo=FALSE}
+#Desempenho dos modelos
+glance(caf_fit)
+
+
+```
+
+Interpretação:Os modelos ETS têm AIC/BIC muito maiores → ajuste pior. Estatisticamente, o melhore modelo são ARIMA(1,1,1) ,O Auto ARIMA confirma essa escolha, confirmando a adequação.
+
+## Diagnóstico dos resíduos
+
+```{r, echo=FALSE}
+caf_fit %>%
+  select(rb) %>%
+  gg_tsresiduals()
+```
+
+Os resíduos (inovações) ficam próximos de zero ao longo do tempo, o que é desejável;Há um pico muito forte em 2020 Q1, refletindo o choque da pandemia sobre o PIB — um outlier que o modelo não conseguiu prever bem;Fora esse ponto, os resíduos parecem relativamente bem comportados.
+
+ACF :A função de autocorrelação mostra que a maioria dos lags está dentro dos limites de confiança;Isso indica que não há autocorrelação significativa nos resíduos, ou seja, o modelo conseguiu capturar bem a estrutura da série;Pequenos picos em lags baixos podem aparecer, mas não são sistemáticos.
+
+Histograma dos resíduos:A distribuição é centrada em torno de zero, como esperado;Há concentração forte próxima de zero, mas também alguns valores extremos (outliers), novamente relacionados a choques econômicos;Isso sugere que os resíduos são aproximadamente normais, mas com caudas pesadas.
+
+Para fins de previsão, o modelo é confiável, mas deve-se considerar que eventos extraordinários podem gerar erros grandes.
+
+### Previsão para ("2022 Q1" \~ "2031 Q4 ") anos
+
+```{r, echo=FALSE}
+#Previsão
+
+caf_fc <- caf_fit %>%
+  forecast(h = 40)
+
+caf_fc
+```
+
+#Gráfico das previsões
+
+```{r, echo=FALSE}
+
+caf_fc %>%
+  filter((.model == "rb") | (.model == "arima111")|(.model == "arima212")|(.model == "auto")|(.model == "arima021")|(.model == "ETS2")|(.model == "ETS1")) %>%
+  autoplot(us_gdp, level = NULL) +
+  labs(
+    y = "GDP",
+    title = "Previsão"
+  ) +
+  guides(colour = guide_legend(title = "PIB EUA"))
+
+```
+
+interpretar o gráfico de previsão do PIB dos EUA com os diferentes modelos:Série histórica A linha preta mostra o PIB real até 2020 Q1, com crescimento consistente ao longo das décadas;O choque da pandemia em 2020 aparece como uma queda abrupta, que os modelos precisam projetar para frente.
+
+Projeções dos modelos:ARIMA(1,1,1), ARIMA(2,1,2) e Auto ARIMA → As linhas coloridas desses modelos seguem trajetórias semelhantes, projetando retomada gradual após 2020;ETS1 e ETS2 → Apresentam previsões mais divergentes, com tendência de crescimento mais acentuada, mas menos aderente ao comportamento histórico;Random Walk (rb) → Produz uma trajetória mais errática, sem capturar bem a dinâmica de crescimento do PIB.
+
+Os modelos ARIMA se mostraram mais consistentes e próximos da realidade histórica, com previsões plausíveis de recuperação após o choque da pandemia;Os modelos ETS tiveram ajuste inferior (como vimos nos critérios AIC/BIC) e suas previsões são menos confiáveis.
+
+## Avaliação da previsão
+
+```{r, echo=FALSE}
+
+accuracy(caf_fc, test)  
+```
+
+Entre os ETS, o ETS2 foi o melhor, com MAPE de apenas 3.65%;Entre os ARIMA, os modelos ARIMA(1,1,1), ARIMA(2,1,2) e Auto ARIMA tiveram desempenho muito semelhante, com MAPE ≈ 5%.
+
+O ARIMA(0,1,2) e o Random Walk foram claramente inferiores;Isso mostra que, embora os critérios de informação (AIC/BIC) favorecessem modelos com 𝑑=2, na prática de previsão o ETS2 e os ARIMA com 𝑑=1 tiveram desempenho competitivo.
+
+## Modelo SARIMA
+
+*Características:*`aus_production`: Série com tendência de queda e sazonalidade anual de período 4. Pico no Q4 - verão australiano.
+
+```{r, echo=FALSE}
+aus_production <- read_csv("C:/Users/usar/Downloads/aus_production.csv") |>
+  transmute(
+    Quarter = yearquarter(Periodo),   
+    Beer = Producao_Megalitros         
+  ) |>
+  filter(!is.na(Beer)) |>
+  as_tsibble(index = Quarter)
+
+head(aus_production)
+
+
+```
+
+```{r}
+# Visualização da série
+autoplot(aus_production, Beer) +
+  labs(title = "Produção de Cerveja na Austrália",
+       y = "Megalitros", x = "Ano")
+```
+
+Vamos interpretar o gráfico da produção de cerveja na Austrália: Série temporal:A série mostra dados trimestrais de 1956 Q1 até 2010 Q2;Há uma forte sazonalidade: picos e vales se repetem regularmente a cada ano, refletindo a variação de consumo de cerveja por estação (maior no verão, menor no inverno).
+
+Essa série é um exemplo clássico para modelagem com ARIMA sazonal (SARIMA) ou modelos ETS com componente sazonal, já que combina tendência de longo prazo com sazonalidade marcada;Para previsão, é essencial capturar tanto a sazonalidade quanto a tendência decrescente dos últimos anos.
+
+```{r}
+# Diferenciação: 1 comum + 1 sazonal de lag 4
+aus_production %>%
+  autoplot(difference(Beer, 4) %>% difference()) +
+  labs(title = "Série com Diferença Sazonal e Comum",
+       y = "Megalitros", x = "Ano")
+
+```
+
+Interpretação da série diferenciada:Oscilações em torno de zero → a tendência de longo prazo foi removida pela diferença comum.
+
+Padrão sazonal ainda visível → os picos e vales regulares foram suavizados pela diferença sazonal, mas ainda há sinais de periodicidade.
+
+Estacionariedade → a série parece estacionária, sem tendência clara, o que é o objetivo da dupla diferenciação.
+
+## ACF e PACF da série diferenciada
+
+```{r}
+
+acf_b <- aus_production %>%
+  ACF(difference(Beer, 4) %>% difference(), lag_max = 20) %>%
+  autoplot() + labs(title="ACF")
+
+pacf_b <- aus_production %>%
+  PACF(difference(Beer, 4) %>% difference(), lag_max = 20) %>%
+  autoplot() + labs(title="PACF")
+
+grid.arrange(acf_b, pacf_b, ncol=2)
+
+```
+
+ACF :Mostra picos significativos nos múltiplos de 4 (lag 4, 8, 12…), o que confirma a presença de sazonalidade trimestral.Há também alguns valores relevantes em lags baixos (lag 1 ou 2), sugerindo que pode haver componente de média móvel (MA) não sazonal:O decaimento lento nos lags sazonais indica que será necessário incluir um termo sazonal no modelo.
+
+PACF:Apresenta picos nos primeiros lags (lag 1 ou 2), sugerindo a presença de componente autorregressivo (AR) não sazonal;Também há indícios de correlação parcial em lag 4, reforçando a necessidade de um componente sazonal AR ou MA. \## Ajuste dos modelos SARIMA
+
+```{r}
+ 
+fit_beer <- aus_production %>%
+model(
+#SARIMA baseado no ACF/PACF
+sarima_111011 = ARIMA(Beer ~ pdq(1,1,1) + PDQ(0,1,1)), 
+# Só sazonal MA
+sarima_011 = ARIMA(Beer ~ pdq(0,1,1) + PDQ(0,1,1)), 
+
+# Deixa o fable escolher
+auto = ARIMA(Beer, stepwise = FALSE, approx = FALSE),
+
+#ETS também pega sazonalidade bem
+ets = ETS(Beer)
+  )
+
+fit_beer
+```
+
+Os modelos ARIMA sazonais (como arima_111011 e sarima_011) são bons candidatos quando há sazonalidade clara nos dados (produção de cerveja, exportações, PIB trimestral etc.).
+
+O ETS(A,A,A) é um modelo exponencial suavizado com componentes aditivos (nível, tendência e sazonalidade).
+
+O auto foi escolhido pelo auto.arima() como o melhor balanço entre ajuste e parcimônia.
+
+## Comparar pelo AICc
+
+```{r}
+
+glance(fit_beer) %>% arrange(AICc) %>% select(.model, sigma2, AICc, BIC)
+```
+
+O ARIMA auto (2,1,2)(0,1,2) é o melhor candidato, pois tem o menor AICc e BIC entre os modelos comparados.
+
+Os modelos sarima_011 e sarima_111011 também são razoáveis, mas com desempenho inferior.
+
+O ETS(A,A,A) não é competitivo neste caso, pois os critérios de informação são muito maiores.
+
+## Diagnóstico do melhor modelo
+
+```{r}
+
+glance(fit_beer) %>% 
+  arrange(AICc) %>% 
+  select(.model, sigma2, AICc, BIC)
+
+melhor <- glance(fit_beer) %>% 
+  slice_min(AICc, n = 1) %>% 
+  pull(.model)
+
+melhor
+
+```
+
+O ARIMA auto (2,1,2)(0,1,2) é o melhor candidato para modelar a série, pois apresenta os menores valores de AICc e BIC. Os outros ARIMA sazonais são alternativas razoáveis, mas menos eficientes. O ETS não é competitivo neste caso.
+
+## Previsão para 40 trimestres = 5 anos
+
+```{r}
+fc_beer <- forecast(fit_beer, h = 40) %>%
+  filter(.model == melhor)
+
+fc_beer %>%
+  autoplot(aus_production) +
+  labs(title = "Previsão Produção de Cerveja Austrália",
+       y = "Megalitros", x = "Ano") +
+  guides(colour = guide_legend(title = "Modelo"))
+
+```
+
+O modelo captura bem os dois componentes principais: tendência decrescente e sazonalidade anual. \## Previsão para 80 trimestres = 10 anos
+
+```{r}
+fc_beer <- forecast(fit_beer, h = 80) %>%
+  filter(.model == melhor)
+
+fc_beer %>%
+  autoplot(aus_production) +
+  labs(title = "Previsão Produção de Cerveja Austrália",
+       y = "Megalitros", x = "Ano") +
+  guides(colour = guide_legend(title = "Modelo"))
+
+```
+
+O modelo captura bem os dois componentes principais: tendência decrescente e sazonalidade anual. \# Conclusão
+
+As previsões indicam crescimento contínuo do PIB americano nos próximos 2 anos. Para a produção de cerveja, a previsão aponta queda na tendência, mas com picos sazonais no 4º trimestre.
+
+Economistas podem usar o modelo do PIB para projeções orçamentárias. As indústrias de bebidas devem reduzir capacidade ao longo do ano, mas aumentar estoque e marketing no Q4 para atender a demanda sazonal.
+
+## Referência banco de dados
+
+Os dados utilizados foram o PIB trimestral dos EUA[^1] e a Produção Trimestral de Cerveja na Austrália[^2], ambos disponíveis no pacote `fpp3` para R[^3].
+
+[^1]: FEDERAL RESERVE BANK OF ST. LOUIS. Gross Domestic Product \[GDP\]. Federal Reserve Economic Data - FRED. Disponível em: https://fred.stlouisfed.org/series/GDP. Acesso em: 20 ago. 2026.
+
+[^2]: AUSTRALIAN BUREAU OF STATISTICS. 8301.0 - Sales of Australian Manufactured Beverages. Canberra: ABS, 1956-2010. Disponível em: https://www.abs.gov.au. Acesso em: 20 ago. 2026.
+
+[^3]: HYNDMAN, R. J. and others."Data for "Forecasting: Principles and Practice". R package version 0.5.0. 2023. Disponível em: https://fpp3.com
